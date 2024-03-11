@@ -1,7 +1,14 @@
+import React from "react";
+
 const App = () => {
-    return (
-        <h1>Hello World</h1>
-    );
-}
+  return (
+    <React.Fragment>
+      <h1 className="main-title">Local GPT</h1>
+      <p>
+        A way to interact with large language models locally on your laptop.
+      </p>
+    </React.Fragment>
+  );
+};
 
 export default App;
