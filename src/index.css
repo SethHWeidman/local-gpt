@@ -1,10 +1,56 @@
-body {
-  margin: 0;
-  background: #f1f3f3;
-  margin-left: 15px;
+/* Set the height of the root React component */
+#root {
+  display: flex;
+  flex-direction: column; /* This stacks the flex items vertically */
+  height: 100vh;
+}
+
+.header-material {
+  padding-top: 10px;
+  padding-left: 20px;
 }
 
 .main-title {
   margin-top: 20px;
   color: #050505;
+}
+
+.app-container {
+  display: flex;
+  /* https://developer.mozilla.org/en-US/docs/Web/CSS/height */
+  height: 100vh; /* Adjust the height as needed */
+  margin: 20px;
+}
+
+.past-chats-panel {
+  width: 15%;
+  padding: 20px;
+  border: solid 1px;
+}
+
+.current-llm-interaction {
+  flex-grow: 1; /* Use the available space */
+  padding-left: 20px;
+  padding-right: 20px;  
+  display: flex;
+  flex-direction: column;
+}
+
+.user-input {
+  padding: 10px;
+  flex-grow: 1;
+  font-size: 1em;
+}
+
+.llm-response-display {
+  flex-grow: 4; /* Allocate more space than user-input */
+  background-color: #e8e8e8;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.control-bar {
+  background-color: #d4d4d4;
+  width: 25%; /* Larger than the past-chats-panel */
+  padding: 20px;
 }
