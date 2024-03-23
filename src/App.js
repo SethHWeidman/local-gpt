@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import LLMResponse from './components/LLMResponse';
 
 const App = () => {
-  const [text, setText] = useState("");
+  const [userText, setUserText] = useState("");
+  const [llmResponse, setLlmResponse] = useState(""); // State to hold the LLM response  
 
   const handleSubmit = async () => {
     try {
@@ -10,12 +12,13 @@ const App = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ userText }),
       });
       const data = await response.json();
       console.log(data); // Log the response from the backend
       // Handle any post-submission logic here, like clearing the text area
-      setText(""); // Clear the text area after successful submission
+      setLlmResponse(data['GPT-4 Response'])
+      setUserText(""); // Clear the text area after successful submission
     } catch (error) {
       console.error("Error submitting text:", error);
     }
@@ -34,16 +37,14 @@ const App = () => {
           This area will display a list of your prior chats.
         </div>
         <div className="current-llm-interaction">
-          <div className="llm-response-display">
-            This will display the output from the LLM you are interacting with.
-          </div>
+          <LLMResponse message={llmResponse} />
           <textarea
             className="user-input"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={userText}
+            onChange={(e) => setUserText(e.target.value)}
             placeholder="This is where you will type your query to the LLM"
           ></textarea>
-          <button onClick={handleSubmit}>Submit</button>
+          <button className="submit-button" onClick={handleSubmit}>Submit</button>
         </div>
         <div className="control-bar">
           This area will contain controls, such as the "temperature", for the

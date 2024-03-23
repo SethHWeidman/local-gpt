@@ -20,7 +20,7 @@ def submit_text():
     flask_request_json = flask_request.json
 
     # Get text from the request JSON body
-    text_data = flask_request_json.get('text', '')
+    text_data = flask_request_json.get('userText', '')
 
     # Send request to OpenAI
     chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
