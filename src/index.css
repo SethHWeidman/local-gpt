@@ -1,12 +1,12 @@
-body {
-  margin: 0;
-}
-
 /* Set the height of the root React component */
 #root {
   display: flex;
   flex-direction: column; /* This stacks the flex items vertically */
   height: 100vh;
+}
+
+body {
+  margin: 0;
 }
 
 .header-material {
@@ -21,9 +21,10 @@ body {
 
 .app-container {
   display: flex;
-  /* https://developer.mozilla.org/en-US/docs/Web/CSS/height */
-  height: 100vh; /* Adjust the height as needed */
   margin: 20px;
+  /* https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-y#hidden */
+  height: 100%;
+  overflow-y: hidden;
 }
 
 .past-chats-panel {
@@ -57,10 +58,19 @@ body {
   overflow-y: auto; /* Enable vertical scrolling */
 }
 
-.control-bar {
+.control-panel {
   background-color: #d4d4d4;
   width: 25%; /* Larger than the past-chats-panel */
   padding: 20px;
+  display: flex;
+  flex-direction: column; 
+}
+
+.system-prompt {
+  padding: 10px;
+  height: 40%;
+  resize: none;
+  font-size: 1em;  
 }
 
 .submit-button {
