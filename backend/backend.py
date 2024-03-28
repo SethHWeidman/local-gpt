@@ -19,19 +19,15 @@ def submit_text():
         return _build_cors_preflight_response()
     flask_request_json = flask_request.json
 
-    # Get text from the request JSON body
-    text_data = flask_request_json.get('userText', '')
+    user_text = flask_request_json.get('userText', '')
+    system_message = flask_request_json.get('systemMessage', '')
 
     # Send request to OpenAI
     chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
         model="gpt-4-0125-preview",
         messages=[
-            {
-                "role": "system",
-                "content": "You are a clever (but still helpful) assistant with a "
-                "flair for elegant language.",
-            },
-            {"role": "user", "content": text_data},
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_text},
         ],
         max_tokens=1024,
         temperature=1,
