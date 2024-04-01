@@ -17,7 +17,6 @@ const App = () => {
   const handleSubmit = async () => {
     setIsModalVisible(true); // Show the modal
 
-    console.log(systemMessage)
     try {
       const response = await fetch("http://localhost:5005/submit-interaction", {
         method: "POST",
@@ -27,15 +26,11 @@ const App = () => {
         body: JSON.stringify({ userText, systemMessage }),
       });
       const data = await response.json();
-      console.log(data); // Log the response from the backend
-      // Handle any post-submission logic here, like clearing the text area
       setLlmResponse(data['GPT-4 Response'])
     } catch (error) {
       console.error("Error submitting text:", error);
     } finally {
       setIsModalVisible(false); // Hide the modal regardless of the request's outcome
-      // setUserText(""); // Clear the text area after successful submission
-      // setSystemMessage(""); // Clear the text area after successful submission
     }
   };
 
