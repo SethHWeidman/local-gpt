@@ -26,7 +26,7 @@ OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
 
-@app.route('/submit-interaction', methods=['POST', 'OPTIONS'])
+@FLASK_APP.route('/submit-interaction', methods=['POST', 'OPTIONS'])
 def submit_text():
     if flask_request.method == 'OPTIONS':
         return _build_cors_preflight_response()
