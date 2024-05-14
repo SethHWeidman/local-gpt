@@ -1,13 +1,28 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ControlPanel from "./components/ControlPanel";
 import LLMResponse from "./components/LLMResponse";
 import Modal from "./components/Modal";
 
 const App = () => {
+  const [conversations, setConversations] = useState([]);
+  const [triggerFetch, setTriggerFetch] = useState(false);  // This state will trigger re-fetching of conversations  
+
   const [userText, setUserText] = useState("");
   const [systemMessage, setSystemMessage] = useState(""); // New state for text from ControlPanel
   const [llmResponse, setLlmResponse] = useState(""); // State to hold the LLM response
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  // fetch conversations
+  useEffect(() => {
+    const fetchConversations = async () => {
+      console.log("here")
+      const response = await fetch("http://localhost:5005/api/conversations");
+      const data = await response.json();
+      setConversations(data);
+    };
+
+    fetchConversations();
+  }, [triggerFetch]);  // Dependency on triggerFetch
 
   // Callback function to update text from ControlPanel
   const handleSystemMessageChange = (event) => {
@@ -27,10 +42,14 @@ const App = () => {
       });
       const data = await response.json();
       setLlmResponse(data["GPT-4 Response"]);
+
+      // Assuming the response is successful, trigger a re-fetch of conversations
+      setTriggerFetch(prev => !prev); // Toggle the state to trigger useEffect      
     } catch (error) {
       console.error("Error submitting text:", error);
     } finally {
       setIsModalVisible(false); // Hide the modal regardless of the request's outcome
+      setTriggerFetch(!triggerFetch);  // Toggle trigger to re-fetch conversations      
     }
   };
 
@@ -48,7 +67,12 @@ const App = () => {
       </div>
       <div className="app-container">
         <div className="past-chats-panel">
-          This area will display a list of your prior chats.
+          Past conversations:
+          <br></br>
+          <br></br>
+          {conversations.map((conv) => (
+            <div key={conv.id}>{conv.topic}</div>
+          ))}
         </div>
         <div className="current-llm-interaction">
           <LLMResponse message={llmResponse} />

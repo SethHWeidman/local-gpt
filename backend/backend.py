@@ -26,7 +26,7 @@ OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
 
-@app.route('/submit-interaction', methods=['POST', 'OPTIONS'])
+@FLASK_APP.route('/submit-interaction', methods=['POST', 'OPTIONS'])
 def submit_text():
     if flask_request.method == 'OPTIONS':
         return _build_cors_preflight_response()
@@ -100,6 +100,32 @@ def submit_text():
             release_db_connection(conn)
 
     return flask.jsonify({'GPT-4 Response': chat_completions_message_content})
+
+
+@FLASK_APP.route("/api/conversations", methods=['GET'])
+def get_conversations():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            '''
+            SELECT id, conversation_topic 
+            FROM conversations 
+            ORDER BY created_at DESC
+            '''
+        )
+        conversations = cur.fetchall()
+        return flask.jsonify(
+            [{'id': conv[0], 'topic': conv[1]} for conv in conversations]
+        )
+    except Exception as e:
+        print("An error occurred", e)
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
 
 
 def _build_cors_preflight_response():
