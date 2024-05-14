@@ -4,5 +4,9 @@
       "editor.formatOnSave": true
     },
     "black-formatter.args": ["--line-length", "88", "-S", "-C"],
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },    
     "editor.rulers": [88]
 }
