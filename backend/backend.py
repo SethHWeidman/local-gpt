@@ -2,6 +2,7 @@ from datetime import datetime
 
 import flask
 from flask import request as flask_request
+from flask.wrappers import Response as flaskResponse
 import flask_cors
 import openai
 import psycopg2.extensions, psycopg2.pool
@@ -27,7 +28,7 @@ OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
 
 @FLASK_APP.route('/submit-interaction', methods=['POST', 'OPTIONS'])
-def submit_text():
+def submit_text() -> flaskResponse:
     if flask_request.method == 'OPTIONS':
         return _build_cors_preflight_response()
     flask_request_json = flask_request.json
@@ -103,7 +104,7 @@ def submit_text():
 
 
 @FLASK_APP.route("/api/conversations", methods=['GET'])
-def get_conversations():
+def get_conversations() -> flaskResponse:
     conn = None
     try:
         conn = get_db_connection()
@@ -128,7 +129,30 @@ def get_conversations():
             release_db_connection(conn)
 
 
-def _build_cors_preflight_response():
+@FLASK_APP.route("/api/messages/<int:conversation_id>", methods=['GET'])
+def get_messages(conversation_id: int) -> flaskResponse:
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT message_text, sender_name "
+            "FROM messages "
+            "WHERE conversation_id = %s",
+            (conversation_id,),
+        )
+        messages = cur.fetchall()
+        return flask.jsonify([{'text': msg[0], 'sender': msg[1]} for msg in messages])
+    except Exception as e:
+        print("An error occurred retrieving messages:", e)
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
+def _build_cors_preflight_response() -> flaskResponse:
     response = flask.jsonify({})
     response_headers = response.headers
     response_headers.add('Access-Control-Allow-Origin', '*')
