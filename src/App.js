@@ -24,6 +24,23 @@ const App = () => {
     fetchConversations();
   }, [triggerFetch]); // Dependency on triggerFetch
 
+  // Handle conversation selection
+  const handleSelectConversation = async (conversationId) => {
+    const response = await fetch(
+      `http://localhost:5005/api/messages/${conversationId}`
+    );
+    const data = await response.json();
+    const systemMessage =
+      data.find((msg) => msg.sender === "system")?.text || "";
+    const userMessage = data.find((msg) => msg.sender === "user")?.text || "";
+    const assistantMessage =
+      data.find((msg) => msg.sender === "assistant")?.text || "";
+
+    setSystemMessage(systemMessage);
+    setUserText(userMessage);
+    setLlmResponse(assistantMessage);
+  };
+
   // Callback function to update text from ControlPanel
   const handleSystemMessageChange = (event) => {
     setSystemMessage(event.target.value);
@@ -71,7 +88,12 @@ const App = () => {
           <br></br>
           <br></br>
           {conversations.map((conv) => (
-            <div key={conv.id}>{conv.topic}</div>
+            <div
+              key={conv.id}
+              onClick={() => handleSelectConversation(conv.id)}
+            >
+              {conv.topic}
+            </div>
           ))}
         </div>
         <div className="current-llm-interaction">
