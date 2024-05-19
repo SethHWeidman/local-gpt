@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import ControlPanel from "./components/ControlPanel";
-import LLMResponse from "./components/LLMResponse";
 import Modal from "./components/Modal";
+import ControlPanel from "./components/ControlPanel";
+import ConversationPanel from "./components/ConversationPanel";
+import InteractionArea from "./components/InteractionArea";
 
 const App = () => {
   const [conversations, setConversations] = useState([]);
@@ -110,42 +111,20 @@ const App = () => {
         </p>
       </div>
       <div className="app-container">
-        <div className="past-chats-panel">
-          Past conversations:
-          <br></br>
-          <br></br>
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => handleSelectConversation(conv.id)}
-              onDoubleClick={() => handleDoubleClick(conv)}
-            >
-              {editId === conv.id ? (
-                <input
-                  type="text"
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  onKeyDown={handleNameChange}
-                  autoFocus
-                />
-              ) : (
-                conv.topic
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="current-llm-interaction">
-          <LLMResponse message={llmResponse} />
-          <textarea
-            className="user-input"
-            value={userText}
-            onChange={(e) => setUserText(e.target.value)}
-            placeholder="This is where you will type your query to the LLM"
-          ></textarea>
-          <button className="submit-button" onClick={handleSubmit}>
-            Submit
-          </button>
-        </div>
+        <ConversationPanel
+          {...{
+            conversations,
+            handleSelectConversation,
+            handleDoubleClick,
+            editId,
+            editText,
+            setEditText,
+            handleNameChange,
+          }}
+        />
+        <InteractionArea
+          {...{ llmResponse, userText, setUserText, handleSubmit }}
+        />
         <ControlPanel
           onSystemMessageChange={handleSystemMessageChange}
           systemMessage={systemMessage}
