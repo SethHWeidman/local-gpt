@@ -12,17 +12,22 @@ const App = () => {
   const [llmResponse, setLlmResponse] = useState(""); // State to hold the LLM response
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // fetch conversations
-  useEffect(() => {
-    const fetchConversations = async () => {
-      console.log("here");
-      const response = await fetch("http://localhost:5005/api/conversations");
-      const data = await response.json();
-      setConversations(data);
-    };
+  // state to manage editing
+  const [editId, setEditId] = useState(null);
+  const [editText, setEditText] = useState("");
 
+  // Function to fetch conversations from the server
+  const fetchConversations = async () => {
+    console.log("Fetching conversations...");
+    const response = await fetch("http://localhost:5005/api/conversations");
+    const data = await response.json();
+    setConversations(data);
+  };
+
+  // Effect to fetch conversations initially and on trigger changes
+  useEffect(() => {
     fetchConversations();
-  }, [triggerFetch]); // Dependency on triggerFetch
+  }, [triggerFetch]);
 
   // Handle conversation selection
   const handleSelectConversation = async (conversationId) => {
@@ -70,6 +75,28 @@ const App = () => {
     }
   };
 
+  // handle double click
+  const handleDoubleClick = (conv) => {
+    setEditId(conv.id);
+    setEditText(conv.topic);
+  };
+
+  // handle name change on enter
+  const handleNameChange = async (e) => {
+    if (e.key === "Enter") {
+      // Call API to update the conversation topic
+      await fetch(`http://localhost:5005/api/conversations/${editId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ topic: editText }),
+      });
+      setEditId(null); // Stop editing model
+      setTriggerFetch((prev) => !prev); // Toggle to re-fetch conversations
+    }
+  };
+
   return (
     <React.Fragment>
       <Modal
@@ -91,8 +118,19 @@ const App = () => {
             <div
               key={conv.id}
               onClick={() => handleSelectConversation(conv.id)}
+              onDoubleClick={() => handleDoubleClick(conv)}
             >
-              {conv.topic}
+              {editId === conv.id ? (
+                <input
+                  type="text"
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={handleNameChange}
+                  autoFocus
+                />
+              ) : (
+                conv.topic
+              )}
             </div>
           ))}
         </div>
