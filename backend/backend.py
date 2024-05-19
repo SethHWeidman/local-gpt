@@ -152,6 +152,31 @@ def get_messages(conversation_id: int) -> flaskResponse:
             release_db_connection(conn)
 
 
+@FLASK_APP.route("/api/conversations/<int:id>", methods=['PUT'])
+def update_conversation(id: int) -> flaskResponse:
+    data = flask_request.json
+    topic = data.get('topic')
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE conversations SET conversation_topic = %s WHERE id = %s',
+            (topic, id),
+        )
+        conn.commit()
+        return flask.jsonify({'success': True})
+    except Exception as e:
+        print("An error occurred:", e)
+        if conn:
+            conn.rollback()
+        return flask.jsonify({'error': 'Internal server error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
 def _build_cors_preflight_response() -> flaskResponse:
     response = flask.jsonify({})
     response_headers = response.headers
