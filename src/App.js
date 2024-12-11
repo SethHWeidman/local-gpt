@@ -1,105 +1,48 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import {
+  ConversationProvider,
+  useConversation,
+} from "./contexts/ConversationContext";
 import Modal from "./components/Modal";
 import ControlPanel from "./components/ControlPanel";
 import ConversationPanel from "./components/ConversationPanel";
 import InteractionArea from "./components/InteractionArea";
+import api from "./api";
 
-const App = () => {
-  const [conversations, setConversations] = useState([]);
-  const [triggerFetch, setTriggerFetch] = useState(false); // This state will trigger re-fetching of conversations
-
-  const [userText, setUserText] = useState("");
-  const [systemMessage, setSystemMessage] = useState(""); // New state for text from ControlPanel
-  const [llmResponse, setLlmResponse] = useState(""); // State to hold the LLM response
+// Create a new component to use hooks
+const AppContent = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-
-  // state to manage editing
-  const [editId, setEditId] = useState(null);
-  const [editText, setEditText] = useState("");
-
-  // Function to fetch conversations from the server
-  const fetchConversations = async () => {
-    console.log("Fetching conversations...");
-    const response = await fetch("http://localhost:5005/api/conversations");
-    const data = await response.json();
-    setConversations(data);
-  };
-
-  // Effect to fetch conversations initially and on trigger changes
-  useEffect(() => {
-    fetchConversations();
-  }, [triggerFetch]);
-
-  // Handle conversation selection
-  const handleSelectConversation = async (conversationId) => {
-    const response = await fetch(
-      `http://localhost:5005/api/messages/${conversationId}`
-    );
-    const data = await response.json();
-    const systemMessage =
-      data.find((msg) => msg.sender === "system")?.text || "";
-    const userMessage = data.find((msg) => msg.sender === "user")?.text || "";
-    const assistantMessage =
-      data.find((msg) => msg.sender === "assistant")?.text || "";
-
-    setSystemMessage(systemMessage);
-    setUserText(userMessage);
-    setLlmResponse(assistantMessage);
-  };
-
-  // Callback function to update text from ControlPanel
-  const handleSystemMessageChange = (event) => {
-    setSystemMessage(event.target.value);
-  };
+  const [editState, setEditState] = useState({ id: null, text: "" });
+  const { currentConversation, setCurrentConversation, fetchConversations } =
+    useConversation();
 
   const handleSubmit = async () => {
-    setIsModalVisible(true); // Show the modal
-
+    setIsModalVisible(true);
     try {
-      const response = await fetch("http://localhost:5005/submit-interaction", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userText, systemMessage }),
-      });
-      const data = await response.json();
-      setLlmResponse(data["GPT-4 Response"]);
-
-      // Assuming the response is successful, trigger a re-fetch of conversations
-      setTriggerFetch((prev) => !prev); // Toggle the state to trigger useEffect
+      const data = await api.submitInteraction(
+        currentConversation.userText,
+        currentConversation.systemMessage
+      );
+      setCurrentConversation((prev) => ({
+        ...prev,
+        llmResponse: data["GPT-4 Response"],
+      }));
+      await fetchConversations(); // Refresh the conversation list
     } catch (error) {
-      console.error("Error submitting text:", error);
+      console.error("Error submitting:", error);
     } finally {
-      setIsModalVisible(false); // Hide the modal regardless of the request's outcome
-      setTriggerFetch(!triggerFetch); // Toggle trigger to re-fetch conversations
+      setIsModalVisible(false);
     }
   };
 
-  // handle double click
-  const handleDoubleClick = (conv) => {
-    setEditId(conv.id);
-    setEditText(conv.topic);
-  };
-
-  // handle name change on enter
-  const handleNameChange = async (e) => {
-    if (e.key === "Enter") {
-      // Call API to update the conversation topic
-      await fetch(`http://localhost:5005/api/conversations/${editId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ topic: editText }),
-      });
-      setEditId(null); // Stop editing model
-      setTriggerFetch((prev) => !prev); // Toggle to re-fetch conversations
-    }
+  const handleEditConversation = async (id, newTopic) => {
+    await api.updateConversationTopic(id, newTopic);
+    setEditState({ id: null, text: "" });
+    await fetchConversations();
   };
 
   return (
-    <React.Fragment>
+    <>
       <Modal
         isVisible={isModalVisible}
         message="Retrieving response from LLM, please wait..."
@@ -112,26 +55,22 @@ const App = () => {
       </div>
       <div className="app-container">
         <ConversationPanel
-          {...{
-            conversations,
-            handleSelectConversation,
-            handleDoubleClick,
-            editId,
-            editText,
-            setEditText,
-            handleNameChange,
-          }}
+          editState={editState}
+          setEditState={setEditState}
+          onEditComplete={handleEditConversation}
         />
-        <InteractionArea
-          {...{ llmResponse, userText, setUserText, handleSubmit }}
-        />
-        <ControlPanel
-          onSystemMessageChange={handleSystemMessageChange}
-          systemMessage={systemMessage}
-        />
+        <InteractionArea onSubmit={handleSubmit} />
+        <ControlPanel />
       </div>
-    </React.Fragment>
+    </>
   );
 };
+
+// Main App component wraps everything in the provider
+const App = () => (
+  <ConversationProvider>
+    <AppContent />
+  </ConversationProvider>
+);
 
 export default App;

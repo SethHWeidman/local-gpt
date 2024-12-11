@@ -1,36 +1,35 @@
 import React from "react";
+import ConversationItem from "./ConversationItem";
+import { useConversation } from "../contexts/ConversationContext";
 import "./ConversationPanel.css";
 
-const ConversationPanel = ({
-  conversations,
-  handleSelectConversation,
-  handleDoubleClick,
-  editId,
-  editText,
-  setEditText,
-  handleNameChange,
-}) => {
+const ConversationPanel = ({ editState, setEditState, onEditComplete }) => {
+  const { conversations } = useConversation();
+
+  const handleDoubleClick = (conv) => {
+    setEditState({ id: conv.id, text: conv.topic });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      onEditComplete(editState.id, editState.text);
+    }
+  };
+
   return (
     <div className="past-chats-panel">
       <div className="past-chats-label">Past conversations:</div>
-      {conversations.map((conv) => (
-        <div
+      {conversations?.map((conv) => (
+        <ConversationItem
           key={conv.id}
-          onClick={() => handleSelectConversation(conv.id)}
-          onDoubleClick={() => handleDoubleClick(conv)}
-        >
-          {editId === conv.id ? (
-            <input
-              type="text"
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              onKeyDown={handleNameChange}
-              autoFocus
-            />
-          ) : (
-            conv.topic
-          )}
-        </div>
+          conversation={conv}
+          onSelect={() => {}} // Will implement selection handler later
+          onDoubleClick={handleDoubleClick}
+          isEditing={editState.id === conv.id}
+          editText={editState.text}
+          onEditChange={(text) => setEditState({ ...editState, text })}
+          onKeyDown={handleKeyDown}
+        />
       ))}
     </div>
   );
