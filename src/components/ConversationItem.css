@@ -1,0 +1,29 @@
+.conversation-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    cursor: pointer;
+  }
+  
+  .conversation-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .conversation-topic {
+    flex-grow: 1;
+    margin-right: 12px;
+  }
+  
+  .model-indicator {
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #666;
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 20px;
+    text-align: center;
+  }
