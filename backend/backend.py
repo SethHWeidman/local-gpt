@@ -11,7 +11,7 @@ import psycopg2.extensions, psycopg2.pool
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
     1,  # minconn
     20,  # maxconn
-    user="sethweidman",
+    user="seth",
     password="newpassword",
     host="localhost",
     port="5432",
@@ -72,7 +72,7 @@ def submit_text() -> flaskResponse:
 
         # Send request to OpenAI
         chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
-            model="gpt-4-0125-preview",
+            model="chatgpt-4o-latest",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_text},
@@ -161,8 +161,7 @@ def update_conversation(id: int) -> flaskResponse:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            'UPDATE conversations SET conversation_topic = %s WHERE id = %s',
-            (topic, id),
+            'UPDATE conversations SET conversation_topic = %s WHERE id = %s', (topic, id)
         )
         conn.commit()
         return flask.jsonify({'success': True})
