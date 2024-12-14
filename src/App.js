@@ -41,6 +41,28 @@ const AppContent = () => {
     await fetchConversations();
   };
 
+  const handleSelectConversation = async (conversationId) => {
+    try {
+      const response = await api.fetchMessages(conversationId);
+      // Find the different message types
+      const systemMessage =
+        response.find((msg) => msg.sender === "system")?.text || "";
+      const userMessage =
+        response.find((msg) => msg.sender === "user")?.text || "";
+      const assistantMessage =
+        response.find((msg) => msg.sender === "assistant")?.text || "";
+
+      // Update the current conversation in context
+      setCurrentConversation({
+        systemMessage,
+        userText: userMessage,
+        llmResponse: assistantMessage,
+      });
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
   return (
     <>
       <Modal
@@ -58,6 +80,7 @@ const AppContent = () => {
           editState={editState}
           setEditState={setEditState}
           onEditComplete={handleEditConversation}
+          onSelectConversation={handleSelectConversation}
         />
         <InteractionArea onSubmit={handleSubmit} />
         <ControlPanel />

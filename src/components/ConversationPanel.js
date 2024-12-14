@@ -3,7 +3,12 @@ import ConversationItem from "./ConversationItem";
 import { useConversation } from "../contexts/ConversationContext";
 import "./ConversationPanel.css";
 
-const ConversationPanel = ({ editState, setEditState, onEditComplete }) => {
+const ConversationPanel = ({
+  editState,
+  setEditState,
+  onEditComplete,
+  onSelectConversation,
+}) => {
   const { conversations } = useConversation();
 
   const handleDoubleClick = (conv) => {
@@ -23,7 +28,7 @@ const ConversationPanel = ({ editState, setEditState, onEditComplete }) => {
         <ConversationItem
           key={conv.id}
           conversation={conv}
-          onSelect={() => {}} // Will implement selection handler later
+          onSelect={() => onSelectConversation(conv.id)}
           onDoubleClick={handleDoubleClick}
           isEditing={editState.id === conv.id}
           editText={editState.text}
