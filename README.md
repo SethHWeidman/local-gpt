@@ -21,7 +21,12 @@ them via their web UIs.
     1. `createdb local-gpt`
     2. `psql -d local-gpt -U <your_username> -a -f db/db.sql`
 
+## Start
+
+`./start-local-gpt.sh`
+
 ## Still to build
 
-1. Handle multi-interaction conversations
-2. Allow toggling between different versions of ChatGPT, as well as Claude
+1. Delete conversations from UI
+2. Handle multi-interaction conversations
+3. Allow toggling between different versions of ChatGPT, as well as Claude
