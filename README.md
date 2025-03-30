@@ -23,6 +23,5 @@ them via their web UIs.
 
 ## Still to build
 
-1. Stream the response
-2. Handle multi-interaction conversations
-3. Allow toggling between different versions of ChatGPT, as well as Claude
+1. Handle multi-interaction conversations
+2. Allow toggling between different versions of ChatGPT, as well as Claude

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   ConversationProvider,
   useConversation,
@@ -9,30 +9,77 @@ import ConversationPanel from "./components/ConversationPanel";
 import InteractionArea from "./components/InteractionArea";
 import api from "./api";
 
-// Create a new component to use hooks
 const AppContent = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editState, setEditState] = useState({ id: null, text: "" });
+  const eventSourceRef = useRef(null);
+
   const { currentConversation, setCurrentConversation, fetchConversations } =
     useConversation();
 
   const handleSubmit = async () => {
-    setIsModalVisible(true);
-    try {
-      const data = await api.submitInteraction(
-        currentConversation.userText,
-        currentConversation.systemMessage
-      );
-      setCurrentConversation((prev) => ({
-        ...prev,
-        llmResponse: data["GPT-4 Response"],
-      }));
-      await fetchConversations(); // Refresh the conversation list
-    } catch (error) {
-      console.error("Error submitting:", error);
-    } finally {
-      setIsModalVisible(false);
+    const userText = currentConversation.userText || "";
+    const systemMessage = currentConversation.systemMessage || "";
+
+    if (!userText.trim() && !systemMessage.trim()) {
+      return;
     }
+
+    setCurrentConversation((prev) => ({ ...prev, llmResponse: "" }));
+    setIsModalVisible(true);
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    const baseUrl = "http://localhost:5005/stream";
+    const urlParams = new URLSearchParams({
+      userText: userText,
+      systemMessage: systemMessage,
+    });
+    const url = `${baseUrl}?${urlParams.toString()}`;
+
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
+
+    es.onmessage = (evt) => {
+      console.log("Received SSE event:", evt.data); // Debug incoming data
+      try {
+        const parsed = JSON.parse(evt.data);
+        if (parsed.error) {
+          console.error("Stream error:", parsed.error);
+          setCurrentConversation((prev) => ({
+            ...prev,
+            llmResponse: `Error: ${parsed.error}`,
+          }));
+          es.close();
+          setIsModalVisible(false);
+          fetchConversations();
+          return;
+        }
+        const token = parsed.token || "";
+        setCurrentConversation((prev) => ({
+          ...prev,
+          llmResponse: (prev.llmResponse || "") + token,
+        }));
+      } catch (err) {
+        console.error("Failed to parse SSE data:", evt.data, err);
+      }
+    };
+
+    const handleClose = () => {
+      es.close();
+      eventSourceRef.current = null;
+      setIsModalVisible(false);
+      fetchConversations();
+    };
+
+    es.onerror = (err) => {
+      console.error("SSE error:", err);
+      handleClose();
+    };
+    es.onclose = handleClose;
   };
 
   const handleEditConversation = async (id, newTopic) => {
@@ -44,7 +91,6 @@ const AppContent = () => {
   const handleSelectConversation = async (conversationId) => {
     try {
       const response = await api.fetchMessages(conversationId);
-      // Find the different message types
       const systemMessage =
         response.find((msg) => msg.sender === "system")?.text || "";
       const userMessage =
@@ -52,7 +98,6 @@ const AppContent = () => {
       const assistantMessage =
         response.find((msg) => msg.sender === "assistant")?.text || "";
 
-      // Update the current conversation in context
       setCurrentConversation({
         systemMessage,
         userText: userMessage,
@@ -89,7 +134,6 @@ const AppContent = () => {
   );
 };
 
-// Main App component wraps everything in the provider
 const App = () => (
   <ConversationProvider>
     <AppContent />
