@@ -28,6 +28,17 @@ const api = {
     });
     return response.json();
   },
+
+  async deleteConversation(id) {
+    const response = await fetch(`${API_ENDPOINTS.CONVERSATIONS}/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!response.ok) {
+      throw new Error("Failed to delete conversation");
+    }
+    return response.json();
+  },
 };
 
 export default api;

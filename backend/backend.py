@@ -320,6 +320,28 @@ def update_conversation(id: int) -> flaskResponse:
             release_db_connection(conn)
 
 
+@FLASK_APP.route("/api/conversations/<int:id>", methods=['DELETE'])
+def delete_conversation(id: int) -> flaskResponse:
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Delete messages first due to foreign key constraint
+        cur.execute("DELETE FROM messages WHERE conversation_id = %s", (id,))
+        cur.execute("DELETE FROM conversations WHERE id = %s", (id,))
+        conn.commit()
+        return flask.jsonify({'success': True})
+    except Exception as e:
+        print("Error deleting conversation:", e)
+        if conn:
+            conn.rollback()
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
 def _build_cors_preflight_response() -> flaskResponse:
     response = flask.jsonify({})
     response_headers = response.headers
