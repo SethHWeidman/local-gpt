@@ -10,8 +10,6 @@ const ConversationItem = ({
   editText,
   onEditChange,
   onKeyDown,
-  isDeleteMode,
-  onDelete,
 }) => {
   // Determine which model indicator to show
   const getModelIndicator = (conversation) => {
@@ -21,7 +19,7 @@ const ConversationItem = ({
 
   return (
     <div
-      className={`conversation-item ${isDeleteMode ? "delete-mode" : ""}`}
+      className="conversation-item"
       onClick={() => onSelect(conversation.id)}
       onDoubleClick={() => onDoubleClick(conversation)}
     >
@@ -40,17 +38,6 @@ const ConversationItem = ({
             {getModelIndicator(conversation)}
           </span>
         </div>
-      )}
-      {isDeleteMode && (
-        <button
-          className="delete-button"
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent selecting the conversation
-            onDelete(conversation.id);
-          }}
-        >
-          X
-        </button>
       )}
     </div>
   );

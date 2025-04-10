@@ -12,32 +12,10 @@ import api from "./api";
 const AppContent = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editState, setEditState] = useState({ id: null, text: "" });
-  const [isDeleteMode, setIsDeleteMode] = useState(false);
   const eventSourceRef = useRef(null);
 
   const { currentConversation, setCurrentConversation, fetchConversations } =
     useConversation();
-
-  // Toggle delete mode
-  const toggleDeleteMode = () => setIsDeleteMode((prev) => !prev);
-
-  // Handle deleting a conversation
-  const handleDeleteConversation = async (id) => {
-    try {
-      await api.deleteConversation(id);
-      await fetchConversations();
-      // If the deleted conversation is the current one, reset it
-      if (currentConversation?.id === id) {
-        setCurrentConversation({
-          systemMessage: "",
-          userText: "",
-          llmResponse: "",
-        });
-      }
-    } catch (error) {
-      console.error("Error deleting conversation:", error);
-    }
-  };
 
   const handleSubmit = async () => {
     const userText = currentConversation.userText || "";
@@ -148,9 +126,6 @@ const AppContent = () => {
           setEditState={setEditState}
           onEditComplete={handleEditConversation}
           onSelectConversation={handleSelectConversation}
-          isDeleteMode={isDeleteMode}
-          toggleDeleteMode={toggleDeleteMode}
-          onDeleteConversation={handleDeleteConversation}
         />
         <InteractionArea onSubmit={handleSubmit} />
         <ControlPanel />

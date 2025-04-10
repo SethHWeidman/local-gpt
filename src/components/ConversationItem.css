@@ -27,14 +27,3 @@
     min-width: 20px;
     text-align: center;
   }
-
-  .conversation-item.delete-mode .conversation-topic {
-    color: red;
-  }
-  
-  .delete-x {
-    color: red;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 0 8px;
-  }
