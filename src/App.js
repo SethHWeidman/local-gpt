@@ -101,27 +101,87 @@ const AppContent = () => {
     let assistantMessageIndex = -1; // Keep track of the assistant message being built
 
     es.onmessage = (evt) => {
-      console.log("Received SSE event:", evt.data); // Debug incoming data
+      console.log("Received SSE event:", evt.data);
       try {
         const parsed = JSON.parse(evt.data);
+
         if (parsed.error) {
           console.error("Stream error:", parsed.error);
+          // Show error to user, maybe add an error message to chat
           setCurrentConversation((prev) => ({
             ...prev,
-            llmResponse: `Error: ${parsed.error}`,
+            messages: [
+              ...prev.messages,
+              { text: `Error: ${parsed.error}`, sender: "system" },
+            ], // Show error as system msg
           }));
           es.close();
           setIsModalVisible(false);
-          fetchConversations();
+          // Don't fetch conversations on error usually
           return;
         }
-        const token = parsed.token || "";
-        setCurrentConversation((prev) => ({
-          ...prev,
-          llmResponse: (prev.llmResponse || "") + token,
-        }));
+
+        // Check if backend sent the ID for a newly created conversation
+        if (parsed.new_conversation_id) {
+          const newId = parsed.new_conversation_id;
+          console.log("Received new conversation ID:", newId);
+          // Update the current conversation ID in state
+          // Add the system message if it was used for creation
+          const initialMessages = [];
+          if (systemMessage)
+            initialMessages.push({ text: systemMessage, sender: "system" });
+          initialMessages.push(newUserMessage); // Add the user message already added optimistically
+
+          setCurrentConversation((prev) => ({
+            ...prev,
+            id: newId,
+            messages: initialMessages, // Start messages list correctly
+            systemMessage: systemMessage, // Store system message
+          }));
+          fetchConversations(); // Refresh the sidebar to show the new conversation
+          // Prepare for the assistant's message (it will come next)
+          setCurrentConversation((prev) => ({
+            ...prev,
+            messages: [...prev.messages, { text: "", sender: "assistant" }], // Add placeholder
+          }));
+          assistantMessageIndex = initialMessages.length;
+          return; // Don't process this event as a token
+        }
+
+        // Handle incoming token
+        if (parsed.token !== undefined) {
+          // Check specifically for 'token' key
+          const token = parsed.token;
+
+          setCurrentConversation((prev) => {
+            const newMessages = [...prev.messages];
+            // If this is the first token for the assistant message in this stream
+            if (assistantMessageIndex === -1) {
+              // Add a new placeholder assistant message
+              newMessages.push({ text: token, sender: "assistant" });
+              assistantMessageIndex = newMessages.length - 1; // Store index
+            } else {
+              // Append token to the existing assistant message
+              if (newMessages[assistantMessageIndex]) {
+                newMessages[assistantMessageIndex] = {
+                  ...newMessages[assistantMessageIndex],
+                  text: newMessages[assistantMessageIndex].text + token,
+                };
+              } else {
+                // Safety check, should not happen if index logic is correct
+                console.error("Assistant message index out of bounds!");
+              }
+            }
+            return { ...prev, messages: newMessages };
+          });
+        }
       } catch (err) {
-        console.error("Failed to parse SSE data:", evt.data, err);
+        console.error(
+          "Failed to parse SSE data or update state:",
+          evt.data,
+          err
+        );
+        // Potentially close connection or show error
       }
     };
 
