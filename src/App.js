@@ -29,8 +29,15 @@ const AppContent = () => {
   // Trigger scroll on message update
   const messagesEndRef = useRef(null);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [currentConversation.messages]);
+    // Check if the ref is attached before trying to scroll
+    if (messagesEndRef.current) {
+      // Add the block: 'end' option
+      messagesEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
+  }, [currentConversation.messages]); // Trigger when messages change
 
   // Toggle delete mode
   const toggleDeleteMode = () => setIsDeleteMode((prev) => !prev);

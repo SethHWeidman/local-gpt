@@ -3,7 +3,6 @@
     display: flex;
     flex-direction: column;
     height: calc(100vh - 150px); /* Adjust height based on your header/other elements */
-    border-left: 1px solid #ccc; /* Separator from ConversationPanel */
     flex-grow: 1; /* Take remaining space */
   }
   
