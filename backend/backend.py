@@ -342,7 +342,7 @@ def get_messages(conversation_id: int) -> flaskResponse:
         )
         messages = cur.fetchall()
         # Return list of dictionaries
-        return flask.jsonify([{'text': msg[0], 'sender': msg[1]} for msg in messages])
+        return flask.jsonify([{'text': msg[1], 'sender': msg[2]} for msg in messages])
     except Exception as e:
         print("An error occurred retrieving messages:", e)
         return flask.jsonify({'error': 'Internal Server Error'}), 500
