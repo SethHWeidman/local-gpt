@@ -26,7 +26,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
   };
 
   return (
-    <div className="interaction-area">
+    <div className="current-llm-interaction">
       {/* Renamed class for clarity */}
       <div className="message-list">
         {messages && messages.length > 0 ? (
