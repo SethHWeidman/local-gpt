@@ -48,7 +48,7 @@
   
   .submit-button {
     padding: 10px 20px;
-    background-color: #28a745; /* Green button */
+    background-color: #A9A9A9;   /* NEW - Dark Gray */
     color: white;
     border: none;
     border-radius: 5px;
@@ -66,6 +66,6 @@
   }
   
   .submit-button:hover:not(:disabled) {
-    background-color: #218838;
+    background-color: #8c8c8c;
   }
   

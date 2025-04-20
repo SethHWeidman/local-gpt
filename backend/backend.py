@@ -155,13 +155,12 @@ def stream_interaction() -> flaskResponse:
                 # Format for OpenAI API
                 for msg in existing_messages:
                     # Map sender_name ('user', 'assistant', 'system') to OpenAI 'role'
-                    role = msg['sender_name']
+                    role = msg[0]  # sender_name is at index 0
+                    content = msg[1]  # message_text is at index 1
                     # 'system' message should only be sent once usually,
                     # or handle how you want context managed.
                     # Simple approach: Include all for now.
-                    messages_for_llm.append(
-                        {"role": role, "content": msg['message_text']}
-                    )
+                    messages_for_llm.append({"role": role, "content": content})
 
             except (ValueError, TypeError):
                 print(

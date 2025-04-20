@@ -245,7 +245,7 @@ const AppContent = () => {
       />
       <div className="header-material">
         {/* Header content */}
-        <h1 className="main-title">Local GPT (Multi-Turn)</h1>
+        <h1 className="main-title">Local GPT</h1>
         <p>Now with conversation history!</p>
       </div>
       <div className="app-container">

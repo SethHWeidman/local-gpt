@@ -7,9 +7,13 @@
     word-wrap: break-word; /* Ensure long words break */
     line-height: 1.4;
   }
+
+  .chat-message p {
+    margin: 0; /* Remove default top/bottom paragraph margins */
+  }
   
   .user-message {
-    background-color: #007bff; /* Blue for user */
+    background-color: #78909C; /* NEW - Muted Blue-Grey */
     color: white;
     margin-left: auto; /* Align to the right */
     margin-right: 10px; /* Add some spacing from the edge */
@@ -17,7 +21,7 @@
   }
   
   .assistant-message {
-    background-color: #e9ecef; /* Light grey for assistant */
+    background-color: #D1D5DB; /* NEW - Slightly darker Cool Grey */
     color: #333;
     margin-right: auto; /* Align to the left */
     margin-left: 10px; /* Add some spacing from the edge */
