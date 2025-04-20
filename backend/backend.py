@@ -229,7 +229,7 @@ def stream_interaction() -> flaskResponse:
         try:
             # --- Send accumulated history to OpenAI ---
             response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
-                model="chatgpt-4o-latest",
+                model="gpt-4.1-2025-04-14",
                 messages=messages_for_llm,  # Use the prepared history
                 temperature=0.8,
                 max_tokens=1024,
