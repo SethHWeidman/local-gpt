@@ -5,7 +5,7 @@ them via their web UIs.
 
 **Features:**
 
-* Engage in a single, back-and-forth interaction with ChatGPT.
+* Engage in a conversation with ChatGPT
 * Modify the system message to change the model behavior
 * Access your prior interactions via a sidebar
 

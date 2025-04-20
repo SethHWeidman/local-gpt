@@ -1,0 +1,71 @@
+/* src/components/InteractionArea.css */
+.interaction-area {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .message-list {
+    flex-grow: 1; /* Takes available vertical space */
+    overflow-y: auto; /* Allows scrolling */
+    padding: 20px;
+    display: flex;
+    flex-direction: column; /* Stack messages vertically */
+    background-color: #e8e8e8; /* Match old background */
+    border: 1px solid #ccc;    /* Add explicit border */
+    border-radius: 5px;       /* Optional: slightly rounded corners */
+    margin-bottom: 15px;      /* Add margin below message list, above input */    
+  }
+  
+  .empty-chat-message {
+      color: #888;
+      text-align: center;
+      margin: auto;
+      font-style: italic;
+  }
+  
+  
+  .input-area {
+    display: flex;
+    align-items: stretch;
+    padding: 10px 20px;
+    background-color: #f8f9fa; /* Light background for input area */
+    flex-shrink: 0; /* Prevent this area from shrinking */
+  }
+  
+  .user-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+    resize: none; /* Prevent manual resizing */
+    min-height: 40px; /* Minimum height */
+    max-height: 150px; /* Maximum height before scrolling */
+    overflow-y: auto; /* Scroll within textarea if needed */
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  
+  .submit-button {
+    padding: 10px 20px;
+    background-color: #A9A9A9;   /* NEW - Dark Gray */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;    
+  }
+  
+  .submit-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  .submit-button:hover:not(:disabled) {
+    background-color: #8c8c8c;
+  }
+  

@@ -1,0 +1,37 @@
+/* src/components/ChatMessage.css */
+.chat-message {
+    max-width: 70%; /* Max width of message bubbles */
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 15px;
+    word-wrap: break-word; /* Ensure long words break */
+    line-height: 1.4;
+  }
+
+  .chat-message p {
+    margin: 0; /* Remove default top/bottom paragraph margins */
+  }
+  
+  .user-message {
+    background-color: #78909C; /* NEW - Muted Blue-Grey */
+    color: white;
+    margin-left: auto; /* Align to the right */
+    margin-right: 10px; /* Add some spacing from the edge */
+    border-bottom-right-radius: 5px; /* Slightly different shape */
+  }
+  
+  .assistant-message {
+    background-color: #D1D5DB; /* NEW - Slightly darker Cool Grey */
+    color: #333;
+    margin-right: auto; /* Align to the left */
+    margin-left: 10px; /* Add some spacing from the edge */
+    border-bottom-left-radius: 5px; /* Slightly different shape */
+  }
+  
+  .message-content {
+      /* Styles specifically for the content inside the bubble if needed */
+      /* For ReactMarkdown generated elements: */
+      & p { margin-bottom: 0; } /* Remove default paragraph margin */
+      & code { background-color: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; }
+      & pre { background-color: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px; overflow-x: auto;}
+  }

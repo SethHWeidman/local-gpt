@@ -113,7 +113,16 @@ def stream_interaction() -> flaskResponse:
     4. Once streaming is done, saves the assistant's final message to DB.
     """
     user_text = flask_request.args.get("userText", "")
+    # Still useful for the *start* of a convo
     system_message = flask_request.args.get("systemMessage", "")
+    # Optional ID from frontend
+    conversation_id_str = flask_request.args.get("conversationId")
+
+    conn = None
+    cur = None
+    conversation_id = None
+    is_new_conversation = True
+    messages_for_llm = []
 
     # We'll create a new conversation topic from the date/time:
     conversation_topic = _get_current_date_and_time_string()
@@ -127,82 +136,127 @@ def stream_interaction() -> flaskResponse:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Insert new conversation
-        cur.execute(
-            "INSERT INTO conversations (conversation_topic) VALUES (%s) RETURNING id",
-            (conversation_topic,),
-        )
-        conversation_id = cur.fetchone()[0]
+        if conversation_id_str:
+            try:
+                conversation_id = int(conversation_id_str)
+                is_new_conversation = False
+                print(f"Continuing conversation ID: {conversation_id}")
 
-        # Insert user message
+                # Fetch existing messages for the context
+                cur.execute(
+                    """SELECT sender_name, message_text
+                       FROM messages
+                       WHERE conversation_id = %s
+                       ORDER BY sent_at ASC""",  # Important: maintain order
+                    (conversation_id,),
+                )
+                existing_messages = cur.fetchall()
+
+                # Format for OpenAI API
+                for msg in existing_messages:
+                    # Map sender_name ('user', 'assistant', 'system') to OpenAI 'role'
+                    role = msg[0]  # sender_name is at index 0
+                    content = msg[1]  # message_text is at index 1
+                    # 'system' message should only be sent once usually,
+                    # or handle how you want context managed.
+                    # Simple approach: Include all for now.
+                    messages_for_llm.append({"role": role, "content": content})
+
+            except (ValueError, TypeError):
+                print(
+                    f"Invalid conversationId received: {conversation_id_str}."
+                    "Starting new conversation."
+                )
+                is_new_conversation = True
+                conversation_id = None  # Reset ID
+
+        # If it's a new conversation, create it
+        if is_new_conversation:
+            conversation_topic = _get_current_date_and_time_string()
+            cur.execute(
+                "INSERT INTO conversations (conversation_topic) "
+                "VALUES (%s) RETURNING id",
+                (conversation_topic,),
+            )
+            conversation_id = cur.fetchone()['id']
+            print(f"Created new conversation ID: {conversation_id}")
+
+            # Add system message to DB and LLM context (if provided)
+            if system_message:
+                cur.execute(
+                    "INSERT INTO messages (conversation_id, message_text, sender_name) "
+                    "VALUES (%s, %s, %s)",
+                    (conversation_id, system_message, "system"),
+                )
+                messages_for_llm.append({"role": "system", "content": system_message})
+            # Commit conversation creation and system message
+
+        # --- Always add the *current* user message ---
+        messages_for_llm.append({"role": "user", "content": user_text})
+
+        # --- Always save the *current* user message to DB ---
         cur.execute(
-            "INSERT INTO messages (conversation_id, message_text, sender_name) "
-            "VALUES (%s, %s, %s)",
+            "INSERT INTO messages "
+            "(conversation_id, message_text, sender_name) VALUES (%s, %s, %s)",
             (conversation_id, user_text, "user"),
         )
-
-        # Insert system message
-        cur.execute(
-            "INSERT INTO messages (conversation_id, message_text, sender_name) "
-            "VALUES (%s, %s, %s)",
-            (conversation_id, system_message, "system"),
-        )
-
-        conn.commit()
+        conn.commit()  # Commit user message *before* streaming starts
 
     except Exception as e:
-        print("Error creating conversation/messages:", e)
+        print(f"Error preparing conversation (ID: {conversation_id}): {e}")
         if conn:
             conn.rollback()
+        # How to handle error response here? Maybe yield an error event.
+        error_data = json.dumps({"error": "Failed to prepare conversation"})
+        return flask.Response(f"data: {error_data}\n\n", mimetype="text/event-stream")
     finally:
-        if conn:
+        # Close cursor early, keep connection for generator if needed for saving later
+        if cur:
             cur.close()
-            release_db_connection(conn)
+        # Don't release connection yet if needed in `generate` for saving the assistant
+        # message
 
     # SSE generator
     def generate(conv_id):  # Pass conversation_id explicitly
         assistant_message_accumulator = []
         print(f"Starting generation for conversation ID: {conv_id}")  # Add log
 
-        try:
-            messages = [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_text},
-            ]
+        # Send initial message indicating new conversation ID if needed
+        if is_new_conversation:
+            new_convo_data = json.dumps({"newConversationId": conv_id})
+            yield f"data: {new_convo_data}\n\n"
 
+        try:
+            # --- Send accumulated history to OpenAI ---
             response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
-                model="chatgpt-4o-latest",
-                messages=messages,
+                model="gpt-4.1-2025-04-14",
+                messages=messages_for_llm,  # Use the prepared history
                 temperature=0.8,
                 max_tokens=1024,
                 stream=True,
             )
 
-            # --- CORRECTED CHUNK PROCESSING ---
             for chunk in response:
                 if chunk.choices:
-                    choice = chunk.choices[0]  # Get the first choice
-                    if choice.delta and choice.delta.content:  # Check delta and content
-                        raw_token = choice.delta.content  # Get token content
+                    choice = chunk.choices[0]
+                    if choice.delta and choice.delta.content:
+                        raw_token = choice.delta.content
                         assistant_message_accumulator.append(raw_token)
-
-                        # SSE needs lines with "data: ..."
                         data_str = json.dumps({"token": raw_token})
-                        # print(f"Yielding: {data_str}")
                         yield f"data: {data_str}\n\n"
-            # --- END CORRECTION ---
 
         except Exception as e:
             print(f"Error during streaming from OpenAI for conv {conv_id}: {e}")
-            # yield an error event to the frontend
             error_data = json.dumps({"error": "Streaming failed"})
             yield f"data: {error_data}\n\n"
+
         finally:
             # Once the stream is complete, store the final assistant text in DB
             final_assistant_text = "".join(assistant_message_accumulator)
+            # Add log
             print(
                 f"Finished streaming for conv {conv_id}. Final text length: {len(final_assistant_text)}"
-            )  # Add log
+            )
 
             # Check we have ID and text
             if conv_id is not None and final_assistant_text:
@@ -214,7 +268,8 @@ def stream_interaction() -> flaskResponse:
                     conn2 = get_db_connection()
                     cur2 = conn2.cursor()
                     cur2.execute(
-                        "INSERT INTO messages (conversation_id, message_text, sender_name) "
+                        "INSERT INTO messages "
+                        "(conversation_id, message_text, sender_name) "
                         "VALUES (%s, %s, %s)",
                         (conv_id, final_assistant_text, "assistant"),
                     )
@@ -223,17 +278,16 @@ def stream_interaction() -> flaskResponse:
                     print(f"Successfully saved final message for conv {conv_id}")
                 except Exception as e:
                     print(
-                        f"Error saving final assistant message to DB for conv {conv_id}: {e}"
+                        "Error saving final assistant message to DB for conv "
+                        "{0}: {1}".format(conversation_id, e)
                     )
                     if conn2:
                         conn2.rollback()
                 finally:
-                    if cur2:  # Close cursor if it was opened
+                    if cur2:
                         cur2.close()
                     if conn2:
                         release_db_connection(conn2)
-                        # Add log
-                        print(f"Released final save connection for conv {conv_id}")
             elif conv_id is None:
                 print("Skipping final save: conversation_id is None.")
             else:
@@ -279,13 +333,15 @@ def get_messages(conversation_id: int) -> flaskResponse:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "SELECT message_text, sender_name "
-            "FROM messages "
-            "WHERE conversation_id = %s",
+            """SELECT id, message_text, sender_name, sent_at
+               FROM messages
+               WHERE conversation_id = %s
+               ORDER BY sent_at ASC""",
             (conversation_id,),
         )
         messages = cur.fetchall()
-        return flask.jsonify([{'text': msg[0], 'sender': msg[1]} for msg in messages])
+        # Return list of dictionaries
+        return flask.jsonify([{'text': msg[1], 'sender': msg[2]} for msg in messages])
     except Exception as e:
         print("An error occurred retrieving messages:", e)
         return flask.jsonify({'error': 'Internal Server Error'}), 500
