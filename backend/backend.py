@@ -6,7 +6,7 @@ from flask import request as flask_request
 from flask.wrappers import Response as flaskResponse
 import flask_cors
 import openai
-import psycopg2.extensions, psycopg2.pool
+import psycopg2.extensions, psycopg2.extras, psycopg2.pool
 
 # Setup connection pool
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
@@ -73,7 +73,7 @@ def submit_text() -> flaskResponse:
 
         # Send request to OpenAI
         chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
-            model="chatgpt-4o-latest",
+            model="gpt-4.1-2025-04-14",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_text},
@@ -87,8 +87,9 @@ def submit_text() -> flaskResponse:
         # Insert the assistant message
         cur.execute(
             "INSERT INTO messages (conversation_id, message_text, sender_name) "
-            "VALUES (%s, %s, %s)",
-            (conversation_id, chat_completions_message_content, "assistant"),
+            "VALUES (%s, %s, %s, %s)",
+            # For this non-streaming endpoint, default to 'chatgpt' or pass if available
+            (conversation_id, chat_completions_message_content, "assistant", "chatgpt"),
         )
 
         # Commit transaction
@@ -117,6 +118,8 @@ def stream_interaction() -> flaskResponse:
     system_message = flask_request.args.get("systemMessage", "")
     # Optional ID from frontend
     conversation_id_str = flask_request.args.get("conversationId")
+    # <<< Get LLM choice, default to 'chatgpt'
+    llm_choice = flask_request.args.get("llm", "chatgpt")
 
     conn = None
     cur = None
@@ -217,7 +220,8 @@ def stream_interaction() -> flaskResponse:
         # message
 
     # SSE generator
-    def generate(conv_id):  # Pass conversation_id explicitly
+    # Pass conversation_id explicitly
+    def generate(conv_id, chosen_llm):
         assistant_message_accumulator = []
         print(f"Starting generation for conversation ID: {conv_id}")  # Add log
 
@@ -225,6 +229,14 @@ def stream_interaction() -> flaskResponse:
         if is_new_conversation:
             new_convo_data = json.dumps({"newConversationId": conv_id})
             yield f"data: {new_convo_data}\n\n"
+
+            # TODO: Add logic here to choose the correct model/API client based on chosen_llm
+            # For now, we'll still use OpenAI but will save `chosen_llm`
+            model_to_use = "gpt-4o"  # Default or map from chosen_llm
+            if chosen_llm == "claude":  # Example for future
+                # model_to_use = "claude-model-name"
+                # Use Claude client instead of OPEN_AI_CHAT_COMPLETIONS_CLIENT
+                pass
 
         try:
             # --- Send accumulated history to OpenAI ---
@@ -297,12 +309,15 @@ def stream_interaction() -> flaskResponse:
 
     # Return an EventStream (SSE) response
     # Pass the conversation_id obtained earlier to the generator
-    return flask.Response(generate(conversation_id), mimetype="text/event-stream")
+    return flask.Response(
+        generate(conversation_id, llm_choice), mimetype="text/event-stream"
+    )
 
 
 @FLASK_APP.route("/api/conversations", methods=['GET'])
 def get_conversations() -> flaskResponse:
     conn = None
+    cur = None  # Initialize cur to None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -329,19 +344,33 @@ def get_conversations() -> flaskResponse:
 @FLASK_APP.route("/api/messages/<int:conversation_id>", methods=['GET'])
 def get_messages(conversation_id: int) -> flaskResponse:
     conn = None
+    cur = None  # Initialize cur to None
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
+        # Use RealDictCursor for dict-like rows
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            """SELECT id, message_text, sender_name, sent_at
+            """SELECT id, message_text, sender_name, sent_at, llm_model
                FROM messages
                WHERE conversation_id = %s
                ORDER BY sent_at ASC""",
             (conversation_id,),
         )
-        messages = cur.fetchall()
-        # Return list of dictionaries
-        return flask.jsonify([{'text': msg[1], 'sender': msg[2]} for msg in messages])
+        messages_raw = cur.fetchall()
+        # Map to frontend expected structure if needed, or ensure frontend adapts
+        messages_processed = []
+        for msg in messages_raw:
+            messages_processed.append(
+                {
+                    'id': msg['id'],  # Good to have message ID on frontend
+                    'text': msg['message_text'],
+                    'sender': msg['sender_name'],
+                    # Send timestamp as ISO string
+                    'sent_at': msg['sent_at'].isoformat(),
+                    'llm_model': msg['llm_model'],  # Include llm_model
+                }
+            )
+        return flask.jsonify(messages_processed)
     except Exception as e:
         print("An error occurred retrieving messages:", e)
         return flask.jsonify({'error': 'Internal Server Error'}), 500
@@ -379,6 +408,7 @@ def update_conversation(id: int) -> flaskResponse:
 @FLASK_APP.route("/api/conversations/<int:id>", methods=['DELETE'])
 def delete_conversation(id: int) -> flaskResponse:
     conn = None
+    cur = None  # Initialize cur to None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
