@@ -18,6 +18,7 @@ export const ConversationProvider = ({ children }) => {
   });
 
   const [currentUserInput, setCurrentUserInput] = useState("");
+  const [selectedLLM, setSelectedLLM] = useState("chatgpt"); // Default to ChatGPT
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -78,6 +79,8 @@ export const ConversationProvider = ({ children }) => {
         setCurrentUserInput, // To update the text area
         fetchConversations,
         loadConversationMessages, // Expose the function to load messages
+        selectedLLM, // Expose selectedLLM
+        setSelectedLLM, // Expose setSelectedLLM
       }}
     >
       {children}

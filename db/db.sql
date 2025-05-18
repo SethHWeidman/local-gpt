@@ -16,6 +16,7 @@ CREATE TABLE messages (
     message_text TEXT NOT NULL,
     sender_name VARCHAR(255) NOT NULL,
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    llm_model VARCHAR(50) NULL, 
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
 );
 

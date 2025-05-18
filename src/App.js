@@ -23,6 +23,7 @@ const AppContent = () => {
     setCurrentUserInput, // We need this if InteractionArea doesn't manage its own state
     fetchConversations,
     loadConversationMessages, // Get the message loading function
+    selectedLLM, // <<< Get selectedLLM from context
   } = useConversation();
 
   // Scroll to bottom when messages change
@@ -132,26 +133,45 @@ const AppContent = () => {
         if (parsed.new_conversation_id) {
           const newId = parsed.new_conversation_id;
           console.log("Received new conversation ID:", newId);
-          // Update the current conversation ID in state
-          // Add the system message if it was used for creation
-          const initialMessages = [];
-          if (systemMessage)
-            initialMessages.push({ text: systemMessage, sender: "system" });
-          initialMessages.push(newUserMessage); // Add the user message already added optimistically
 
-          setCurrentConversation((prev) => ({
-            ...prev,
+          // systemMessage and newUserMessage are from the outer scope of handleSubmit
+          const currentSystemMessage = systemMessage; // Capture from handleSubmit's scope
+          const currentUserMessage = newUserMessage; // Capture from handleSubmit's scope
+
+          // This will be the list of messages *before* adding the assistant's placeholder
+          const messagesForNewConversation = [];
+          if (currentSystemMessage) {
+            messagesForNewConversation.push({
+              text: currentSystemMessage,
+              sender: "system",
+            });
+          }
+          messagesForNewConversation.push(currentUserMessage);
+
+          // First, update the conversation state with the new ID and initial messages
+          setCurrentConversation((prevConv) => ({
+            ...prevConv,
             id: newId,
-            messages: initialMessages, // Start messages list correctly
-            systemMessage: systemMessage, // Store system message
+            messages: messagesForNewConversation,
+            systemMessage: currentSystemMessage, // Persist system message in conversation state
           }));
-          fetchConversations(); // Refresh the sidebar to show the new conversation
-          // Prepare for the assistant's message (it will come next)
-          setCurrentConversation((prev) => ({
-            ...prev,
-            messages: [...prev.messages, { text: "", sender: "assistant" }], // Add placeholder
+
+          fetchConversations(); // Refresh the conversation list in the sidebar
+
+          // Now, add the assistant's placeholder message.
+          // This setCurrentConversation call will queue after the previous one.
+          // React will batch these updates if possible.
+          setCurrentConversation((prevConv) => ({
+            ...prevConv, // prevConv here will have the ID and messages set by the previous update
+            messages: [
+              ...prevConv.messages, // These are already messagesForNewConversation
+              { text: "", sender: "assistant", llm_model: selectedLLM }, // Add placeholder with selected LLM
+            ],
           }));
-          assistantMessageIndex = initialMessages.length;
+
+          // The assistant message index is the length of the messages *before* adding the placeholder.
+          // So, it's the length of messagesForNewConversation.
+          assistantMessageIndex = messagesForNewConversation.length;
           return; // Don't process this event as a token
         }
 
@@ -165,7 +185,11 @@ const AppContent = () => {
             // If this is the first token for the assistant message in this stream
             if (assistantMessageIndex === -1) {
               // Add a new placeholder assistant message
-              newMessages.push({ text: token, sender: "assistant" });
+              newMessages.push({
+                text: token,
+                sender: "assistant",
+                llm_model: selectedLLM,
+              });
               assistantMessageIndex = newMessages.length - 1; // Store index
             } else {
               // Append token to the existing assistant message

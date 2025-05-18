@@ -7,8 +7,13 @@ import "./InteractionArea.css";
 // Accept messagesEndRef prop for scrolling
 const InteractionArea = ({ onSubmit, messagesEndRef }) => {
   // Get messages array and current input state from context
-  const { currentConversation, currentUserInput, setCurrentUserInput } =
-    useConversation();
+  const {
+    currentConversation,
+    currentUserInput,
+    setCurrentUserInput,
+    selectedLLM, // Get selectedLLM from context
+    setSelectedLLM, // Get setSelectedLLM from context} =
+  } = useConversation();
   const { messages } = currentConversation;
 
   // Handle changes in the text area
@@ -25,6 +30,10 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     }
   };
 
+  const handleLLMChange = (e) => {
+    setSelectedLLM(e.target.value);
+  };
+
   return (
     <div className="current-llm-interaction">
       {/* Renamed class for clarity */}
@@ -35,6 +44,8 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             <ChatMessage
               key={`${currentConversation.id}-${index}-${msg.sender}`}
               message={msg}
+              // In the future, you'll pass the llm_model for this message here
+              // llmModel={msg.llm_model}
             />
           ))
         ) : (
@@ -42,7 +53,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             Select a conversation or start a new one.
           </div>
         )}
-        {/* Add a div at the end to scroll to */}
         <div ref={messagesEndRef} />
       </div>
       <div className="input-area">
@@ -55,13 +65,28 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           onKeyDown={handleKeyDown} // Add keydown listener
           placeholder="Type your message here..." // Updated placeholder
         ></textarea>
-        <button
-          className="submit-button"
-          onClick={onSubmit}
-          disabled={!currentUserInput.trim()} // Disable if input is empty
-        >
-          Send
-        </button>
+        <div className="controls-container">
+          {" "}
+          {/* New container for alignment */}
+          <select
+            className="llm-selector"
+            value={selectedLLM}
+            onChange={handleLLMChange}
+          >
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude" disabled>
+              Claude
+            </option>
+            {/* Add more LLMs here in the future */}
+          </select>
+          <button
+            className="submit-button"
+            onClick={onSubmit}
+            disabled={!currentUserInput.trim()} // Disable if input is empty
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
