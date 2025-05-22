@@ -181,8 +181,14 @@ def stream_interaction() -> flaskResponse:
                 "VALUES (%s) RETURNING id",
                 (conversation_topic,),
             )
-            conversation_id = cur.fetchone()['id']
-            print(f"Created new conversation ID: {conversation_id}")
+            conversation_id_row = cur.fetchone()
+            # Good practice to check if anything was returned
+            if not conversation_id_row:
+                raise Exception(
+                    "Failed to create new conversation and retrieve ID after INSERT."
+                )
+            # Access the first element of the tuple
+            conversation_id = conversation_id_row[0]
 
             # Add system message to DB and LLM context (if provided)
             if system_message:

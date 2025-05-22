@@ -27,10 +27,11 @@ them via their web UIs.
 
 ## Still to build
 
-1. Handle multi-interaction conversations
-2. Allow toggling between different versions of ChatGPT, as well as Claude
-3. Delete mode fixes:
+1. Allow toggling between different versions of ChatGPT, as well as Claude
+    1. Have the front end and some back end changes built.
+    2. Need to store the raw LLM name in the `messages` table
+2. Delete mode fixes:
     1. Move toggle to the top right of ConversationPanel
-    2. Make the ConversationPanel a scrollable element
+3. Make the ConversationPanel a scrollable element
 4. ConversationPanel UI fixes:
     1. Highlight each element on hover
