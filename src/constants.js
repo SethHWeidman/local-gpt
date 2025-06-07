@@ -8,3 +8,6 @@ export const MODEL_INDICATORS = {
   GPT: "H",
   CLAUDE: "C",
 };
+
+// List of available OpenAI models for selection in the UI
+export const OPENAI_MODELS = ["gpt-4.1-2025-04-14", "o4-mini"];

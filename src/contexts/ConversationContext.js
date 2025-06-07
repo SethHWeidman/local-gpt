@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import api from "../api";
+import { OPENAI_MODELS } from "../constants";
 
 const ConversationContext = createContext();
 
@@ -18,7 +19,7 @@ export const ConversationProvider = ({ children }) => {
   });
 
   const [currentUserInput, setCurrentUserInput] = useState("");
-  const [selectedLLM, setSelectedLLM] = useState("chatgpt"); // Default to ChatGPT
+  const [selectedLLM, setSelectedLLM] = useState(OPENAI_MODELS[0]); // Default to first OpenAI model
 
   const fetchConversations = useCallback(async () => {
     try {

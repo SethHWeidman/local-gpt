@@ -27,15 +27,18 @@ flask_cors.CORS(FLASK_APP)
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
+NO_TEMPERATURE_MODELS = {"o4-mini"}
+
 
 @FLASK_APP.route('/submit-interaction', methods=['POST', 'OPTIONS'])
 def submit_text() -> flaskResponse:
     if flask_request.method == 'OPTIONS':
         return _build_cors_preflight_response()
     flask_request_json = flask_request.json
-
     user_text = flask_request_json.get('userText', '')
     system_message = flask_request_json.get('systemMessage', '')
+    # Allow client to specify the LLM model name; default to gpt-4.1-2025-04-14
+    model_choice = flask_request_json.get('llm', 'gpt-4.1-2025-04-14')
 
     conversation_topic = _get_current_date_and_time_string()
 
@@ -71,25 +74,33 @@ def submit_text() -> flaskResponse:
             (conversation_id, system_message, "system"),
         )
 
-        # Send request to OpenAI
-        chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
-            model="gpt-4.1-2025-04-14",
-            messages=[
+        # Send request to OpenAI using requested LLM
+        params = {
+            "model": model_choice,
+            "messages": [
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_text},
             ],
-            max_tokens=1024,
-            temperature=1,
-        )
+            "max_completion_tokens": 1024,
+        }
+        if model_choice not in NO_TEMPERATURE_MODELS:
+            params["temperature"] = 1
+        chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
+        chat_completions_choices = chat_completion.choices
+        chat_completions_first_choice = chat_completions_choices[0]
+        chat_completions_first_choice_message = chat_completions_first_choice.message
+        chat_completions_message_content = chat_completions_first_choice_message.content
 
-        chat_completions_message_content = chat_completion.choices[0].message.content
-
-        # Insert the assistant message
+        # Insert the assistant message with llm_model
         cur.execute(
-            "INSERT INTO messages (conversation_id, message_text, sender_name) "
+            "INSERT INTO messages (conversation_id, message_text, sender_name, llm_model) "
             "VALUES (%s, %s, %s, %s)",
-            # For this non-streaming endpoint, default to 'chatgpt' or pass if available
-            (conversation_id, chat_completions_message_content, "assistant", "chatgpt"),
+            (
+                conversation_id,
+                chat_completions_message_content,
+                "assistant",
+                model_choice,
+            ),
         )
 
         # Commit transaction
@@ -118,8 +129,8 @@ def stream_interaction() -> flaskResponse:
     system_message = flask_request.args.get("systemMessage", "")
     # Optional ID from frontend
     conversation_id_str = flask_request.args.get("conversationId")
-    # <<< Get LLM choice, default to 'chatgpt'
-    llm_choice = flask_request.args.get("llm", "chatgpt")
+    # Get LLM model choice from query params; default to gpt-4.1-2025-04-14
+    llm_choice = flask_request.args.get("llm", "gpt-4.1-2025-04-14")
 
     conn = None
     cur = None
@@ -236,23 +247,20 @@ def stream_interaction() -> flaskResponse:
             new_convo_data = json.dumps({"newConversationId": conv_id})
             yield f"data: {new_convo_data}\n\n"
 
-            # TODO: Add logic here to choose the correct model/API client based on chosen_llm
-            # For now, we'll still use OpenAI but will save `chosen_llm`
-            model_to_use = "gpt-4o"  # Default or map from chosen_llm
-            if chosen_llm == "claude":  # Example for future
-                # model_to_use = "claude-model-name"
-                # Use Claude client instead of OPEN_AI_CHAT_COMPLETIONS_CLIENT
-                pass
+        # Determine which OpenAI model to use for chat completions
+        model_to_use = chosen_llm
 
         try:
             # --- Send accumulated history to OpenAI ---
-            response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(
-                model="gpt-4.1-2025-04-14",
-                messages=messages_for_llm,  # Use the prepared history
-                temperature=0.8,
-                max_tokens=1024,
-                stream=True,
-            )
+            params = {
+                "model": model_to_use,
+                "messages": messages_for_llm,
+                "max_completion_tokens": 1024,
+                "stream": True,
+            }
+            if model_to_use not in NO_TEMPERATURE_MODELS:
+                params["temperature"] = 0.8
+            response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
 
             for chunk in response:
                 if chunk.choices:
@@ -287,9 +295,9 @@ def stream_interaction() -> flaskResponse:
                     cur2 = conn2.cursor()
                     cur2.execute(
                         "INSERT INTO messages "
-                        "(conversation_id, message_text, sender_name) "
-                        "VALUES (%s, %s, %s)",
-                        (conv_id, final_assistant_text, "assistant"),
+                        "(conversation_id, message_text, sender_name, llm_model) "
+                        "VALUES (%s, %s, %s, %s)",
+                        (conv_id, final_assistant_text, "assistant", chosen_llm),
                     )
                     conn2.commit()
                     # Add log

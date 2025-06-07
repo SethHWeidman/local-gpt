@@ -100,6 +100,8 @@ const AppContent = () => {
     if (currentConversation.id) {
       urlParams.append("conversationId", currentConversation.id);
     }
+    // Include selected LLM (model) in the request
+    urlParams.append("llm", selectedLLM);
 
     const url = `${baseUrl}?${urlParams.toString()}`;
 
