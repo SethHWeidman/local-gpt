@@ -10,4 +10,9 @@ export const MODEL_INDICATORS = {
 };
 
 // List of available OpenAI models for selection in the UI
-export const OPENAI_MODELS = ["gpt-4.1-2025-04-14", "o4-mini"];
+// List of available models (OpenAI and Anthropic Claude) for selection in the UI
+export const OPENAI_MODELS = [
+  "gpt-4.1-2025-04-14",
+  "o4-mini",
+  "claude-sonnet-4-0",
+];

@@ -6,6 +6,7 @@ from flask import request as flask_request
 from flask.wrappers import Response as flaskResponse
 import flask_cors
 import openai
+import anthropic
 import psycopg2.extensions, psycopg2.extras, psycopg2.pool
 
 # Setup connection pool
@@ -27,7 +28,35 @@ flask_cors.CORS(FLASK_APP)
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
+# ---------- Anthropic (Claude) setup -------------------------------------
+ANTHROPIC_CLIENT = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
+
+MODEL_CLAUDE_REASONING = "claude-sonnet-4-0"
+MAX_ANTHROPIC_TOKENS = 8192
+
+ANTHROPIC_MODELS = {MODEL_CLAUDE_REASONING}
+# -------------------------------------------------------------------------
+
 NO_TEMPERATURE_MODELS = {"o4-mini"}
+
+
+def _anthropic_call(
+    *,
+    messages: list[dict],
+    system_prompt: str | None,
+    max_tokens: int,
+    stream: bool = False,
+):
+    params = {
+        "model": MODEL_CLAUDE_REASONING,
+        "max_tokens": max_tokens,
+        "messages": messages,
+    }
+    if system_prompt:
+        params["system"] = system_prompt
+    if stream:
+        params["stream"] = True
+    return ANTHROPIC_CLIENT.messages.create(**params)
 
 
 @FLASK_APP.route('/submit-interaction', methods=['POST', 'OPTIONS'])
@@ -74,22 +103,30 @@ def submit_text() -> flaskResponse:
             (conversation_id, system_message, "system"),
         )
 
-        # Send request to OpenAI using requested LLM
-        params = {
-            "model": model_choice,
-            "messages": [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_text},
-            ],
-            "max_completion_tokens": 1024,
-        }
-        if model_choice not in NO_TEMPERATURE_MODELS:
-            params["temperature"] = 1
-        chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
-        chat_completions_choices = chat_completion.choices
-        chat_completions_first_choice = chat_completions_choices[0]
-        chat_completions_first_choice_message = chat_completions_first_choice.message
-        chat_completions_message_content = chat_completions_first_choice_message.content
+        # Send request to the chosen LLM
+        if model_choice in ANTHROPIC_MODELS:
+            chat_resp = _anthropic_call(
+                messages=[{"role": "user", "content": user_text}],
+                system_prompt=system_message or None,
+                max_tokens=MAX_ANTHROPIC_TOKENS,
+            )
+            chat_completions_message_content = "".join(
+                blk.text for blk in chat_resp.content if blk.type == "text"
+            ).strip()
+        else:
+            params = {
+                "model": model_choice,
+                "messages": [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_text},
+                ],
+                "max_completion_tokens": 1024,
+            }
+            if model_choice not in NO_TEMPERATURE_MODELS:
+                params["temperature"] = 1
+            chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
+            choice = chat_completion.choices[0]
+            chat_completions_message_content = choice.message.content
 
         # Insert the assistant message with llm_model
         cur.execute(
@@ -166,15 +203,11 @@ def stream_interaction() -> flaskResponse:
                 )
                 existing_messages = cur.fetchall()
 
-                # Format for OpenAI API
-                for msg in existing_messages:
-                    # Map sender_name ('user', 'assistant', 'system') to OpenAI 'role'
-                    role = msg[0]  # sender_name is at index 0
-                    content = msg[1]  # message_text is at index 1
-                    # 'system' message should only be sent once usually,
-                    # or handle how you want context managed.
-                    # Simple approach: Include all for now.
-                    messages_for_llm.append({"role": role, "content": content})
+                for sender, text in existing_messages:
+                    if sender == "system" and system_message == "":
+                        system_message = text  # keep only the first one
+                    else:
+                        messages_for_llm.append({"role": sender, "content": text})
 
             except (ValueError, TypeError):
                 print(
@@ -208,7 +241,6 @@ def stream_interaction() -> flaskResponse:
                     "VALUES (%s, %s, %s)",
                     (conversation_id, system_message, "system"),
                 )
-                messages_for_llm.append({"role": "system", "content": system_message})
             # Commit conversation creation and system message
 
         # --- Always add the *current* user message ---
@@ -251,25 +283,48 @@ def stream_interaction() -> flaskResponse:
         model_to_use = chosen_llm
 
         try:
-            # --- Send accumulated history to OpenAI ---
-            params = {
-                "model": model_to_use,
-                "messages": messages_for_llm,
-                "max_completion_tokens": 1024,
-                "stream": True,
-            }
-            if model_to_use not in NO_TEMPERATURE_MODELS:
-                params["temperature"] = 0.8
-            response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
+            if model_to_use in ANTHROPIC_MODELS:
+                # 1. Build complete history once, including previous DB turns
+                anthro_messages = messages_for_llm[:]  # already in alternating order
+                anthro_messages = [m for m in messages_for_llm if m["role"] != "system"]
+                # 2. Stream from Claude
+                with _anthropic_call(
+                    messages=anthro_messages,
+                    system_prompt=system_message or None,
+                    max_tokens=MAX_ANTHROPIC_TOKENS,
+                    stream=True,
+                ) as stream:
+                    for chunk in stream:
+                        if chunk.type == "content_block_delta":
+                            tok = chunk.delta.text
+                            assistant_message_accumulator.append(tok)
+                            yield f"data: {json.dumps({'token': tok})}\n\n"
+            else:
+                # Prepend system turn for ChatGPT / GPT-4, if one exists
+                openai_messages = (
+                    [{"role": "system", "content": system_message}]
+                    if system_message
+                    else []
+                ) + messages_for_llm
+                # --- Send accumulated history to OpenAI ---
+                params = {
+                    "model": model_to_use,
+                    "messages": openai_messages,
+                    "max_completion_tokens": 1024,
+                    "stream": True,
+                }
+                if model_to_use not in NO_TEMPERATURE_MODELS:
+                    params["temperature"] = 0.8
+                response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
 
-            for chunk in response:
-                if chunk.choices:
-                    choice = chunk.choices[0]
-                    if choice.delta and choice.delta.content:
-                        raw_token = choice.delta.content
-                        assistant_message_accumulator.append(raw_token)
-                        data_str = json.dumps({"token": raw_token})
-                        yield f"data: {data_str}\n\n"
+                for chunk in response:
+                    if chunk.choices:
+                        choice = chunk.choices[0]
+                        if choice.delta and choice.delta.content:
+                            raw_token = choice.delta.content
+                            assistant_message_accumulator.append(raw_token)
+                            data_str = json.dumps({"token": raw_token})
+                            yield f"data: {data_str}\n\n"
 
         except Exception as e:
             print(f"Error during streaming from OpenAI for conv {conv_id}: {e}")
@@ -281,7 +336,8 @@ def stream_interaction() -> flaskResponse:
             final_assistant_text = "".join(assistant_message_accumulator)
             # Add log
             print(
-                f"Finished streaming for conv {conv_id}. Final text length: {len(final_assistant_text)}"
+                f"Finished streaming for conv {conv_id}. Final text length: "
+                f"{len(final_assistant_text)}"
             )
 
             # Check we have ID and text
@@ -318,7 +374,8 @@ def stream_interaction() -> flaskResponse:
                 print("Skipping final save: conversation_id is None.")
             else:
                 print(
-                    f"Skipping final save for conv {conv_id}: No assistant text generated."
+                    f"Skipping final save for conv {conv_id}: No assistant text "
+                    "generated."
                 )
 
     # Return an EventStream (SSE) response

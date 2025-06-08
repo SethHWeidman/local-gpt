@@ -5,7 +5,7 @@ them via their web UIs.
 
 **Features:**
 
-* Engage in a conversation with ChatGPT
+* Engage in a conversation with ChatGPT and Claude
 * Modify the system message to change the model behavior
 * Access your prior interactions via a sidebar
 
@@ -17,9 +17,14 @@ them via their web UIs.
    have Homebrew installed:
     1. `brew install postgresql`
     2. `brew services start postgresql`
-3. `cd` into the `db` directory and run 
-    1. `createdb local-gpt`
-    2. `psql -d local-gpt -U <your_username> -a -f db/db.sql`
+3. `cd` into the `db` directory and run:
+   1. `createdb local-gpt`
+   2. `psql -d local-gpt -U <your_username> -a -f db/db.sql`
+4. Set your OpenAI and Anthropic API keys:
+   ```bash
+   export OPENAI_API_KEY="your_openai_api_key"
+   export ANTHROPIC_API_KEY="your_anthropic_api_key"
+   ```
 
 ## Start
 
@@ -27,7 +32,6 @@ them via their web UIs.
 
 ## Still to build
 
-1. Add ability to select Claude to dropdown
 1. Delete mode fixes:
     1. Move toggle to the top right of ConversationPanel
 2. Make the ConversationPanel a scrollable element
