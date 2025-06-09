@@ -276,7 +276,7 @@ def stream_interaction() -> flaskResponse:
 
         # Send initial message indicating new conversation ID if needed
         if is_new_conversation:
-            new_convo_data = json.dumps({"newConversationId": conv_id})
+            new_convo_data = json.dumps({"new_conversation_id": conv_id})
             yield f"data: {new_convo_data}\n\n"
 
         # Determine which OpenAI model to use for chat completions
