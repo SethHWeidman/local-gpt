@@ -1,4 +1,3 @@
-import React from "react";
 import { MODEL_INDICATORS } from "../constants";
 import "./ConversationItem.css";
 

@@ -1,4 +1,3 @@
-import React from "react";
 import { useConversation } from "../contexts/ConversationContext";
 
 const ControlPanel = () => {

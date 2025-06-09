@@ -1,4 +1,3 @@
-import React from "react";
 // Rename LLMResponse to ChatMessage for clarity
 import ChatMessage from "./ChatMessage"; // Assuming you rename LLMResponse.js
 import { useConversation } from "../contexts/ConversationContext";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import ConversationItem from "./ConversationItem";
 import { useConversation } from "../contexts/ConversationContext";
 import "./ConversationPanel.css";
