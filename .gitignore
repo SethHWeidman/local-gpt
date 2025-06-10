@@ -1,2 +1,6 @@
+# Node modules and lock file
 node_modules
 package-lock.json
+
+# Vite build output
+dist/
