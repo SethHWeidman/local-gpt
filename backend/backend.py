@@ -1,6 +1,6 @@
 from datetime import datetime
 import json
-from pathlib import Path
+import pathlib
 
 import flask
 from flask import request as flask_request
@@ -30,8 +30,11 @@ OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
 # ---------- Model configuration ------------------------------------------
-HERE = Path(__file__).resolve().parent
-MODEL_CONFIG = json.loads((HERE.parent / "shared" / "models.json").read_text())
+current_file = pathlib.Path(__file__)
+current_filepath = current_file.resolve()
+current_filepath_parent = current_filepath.parent
+config_filepath = current_filepath_parent.parent / "shared" / "models.json"
+MODEL_CONFIG = json.loads(config_filepath.read_text())
 
 # Anthropic (Claude) setup
 ANTHROPIC_CLIENT = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
