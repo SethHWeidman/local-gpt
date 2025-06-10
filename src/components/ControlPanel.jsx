@@ -19,7 +19,7 @@ const ControlPanel = () => {
       <textarea
         className="system-prompt"
         onChange={handleSystemMessageChange}
-        value={currentConversation.systemMessage || ""} // Add default empty string
+        value={currentConversation.systemMessage || ""}
       ></textarea>
     </div>
   );

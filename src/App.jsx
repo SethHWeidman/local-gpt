@@ -4,7 +4,6 @@ import {
   useConversation,
 } from "./contexts/ConversationContext";
 import Modal from "./components/Modal";
-import ControlPanel from "./components/ControlPanel";
 import ConversationPanel from "./components/ConversationPanel";
 import InteractionArea from "./components/InteractionArea";
 import api from "./api";
@@ -15,40 +14,32 @@ const AppContent = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const eventSourceRef = useRef(null);
 
-  // Get state and functions from the updated context
   const {
     currentConversation,
     setCurrentConversation,
-    currentUserInput, // Get the user input state
-    setCurrentUserInput, // We need this if InteractionArea doesn't manage its own state
+    currentUserInput,
+    setCurrentUserInput,
     fetchConversations,
-    loadConversationMessages, // Get the message loading function
-    selectedLLM, // <<< Get selectedLLM from context
+    loadConversationMessages,
+    selectedLLM,
   } = useConversation();
 
-  // Scroll to bottom when messages change
-  // Trigger scroll on message update
   const messagesEndRef = useRef(null);
   useEffect(() => {
-    // Check if the ref is attached before trying to scroll
     if (messagesEndRef.current) {
-      // Add the block: 'end' option
       messagesEndRef.current.scrollIntoView({
         behavior: "smooth",
         block: "end",
       });
     }
-  }, [currentConversation.messages]); // Trigger when messages change
+  }, [currentConversation.messages]);
 
-  // Toggle delete mode
   const toggleDeleteMode = () => setIsDeleteMode((prev) => !prev);
 
-  // Handle deleting a conversation
   const handleDeleteConversation = async (id) => {
     try {
       await api.deleteConversation(id);
       await fetchConversations();
-      // If the deleted conversation is the current one, reset it
       if (currentConversation?.id === id) {
         setCurrentConversation({
           systemMessage: "",
@@ -62,25 +53,20 @@ const AppContent = () => {
   };
 
   const handleSubmit = async () => {
-    // Use currentUserInput from context, trim whitespace
     const textToSend = currentUserInput.trim();
 
-    // Get system message - either from current convo or a default (e.g., from ControlPanel state if you implement that)
-    // For now, let's assume new convos use a default/empty string, and existing ones use the one loaded.
-    // The backend logic already handles finding the system message for existing convos.
-    const systemMessage = currentConversation.systemMessage || ""; // Or get from ControlPanel state
+    const systemMessage = currentConversation.systemMessage || "";
 
     if (!textToSend) {
-      return; // Don't submit empty messages
+      return;
     }
 
-    // Optimistically add user message to the UI immediately
     const newUserMessage = { text: textToSend, sender: "user" };
     setCurrentConversation((prev) => ({
       ...prev,
       messages: [...prev.messages, newUserMessage],
     }));
-    setCurrentUserInput(""); // Clear the input field immediately
+    setCurrentUserInput("");
 
     setCurrentConversation((prev) => ({ ...prev, llmResponse: "" }));
     setIsModalVisible(true);
@@ -96,11 +82,9 @@ const AppContent = () => {
       ...(currentConversation.id ? {} : { systemMessage: systemMessage }),
     });
 
-    // Add conversationId if it exists
     if (currentConversation.id) {
       urlParams.append("conversationId", currentConversation.id);
     }
-    // Include selected LLM (model) in the request
     urlParams.append("llm", selectedLLM);
 
     const url = `${baseUrl}?${urlParams.toString()}`;
@@ -108,7 +92,7 @@ const AppContent = () => {
     const es = new EventSource(url);
     eventSourceRef.current = es;
 
-    let assistantMessageIndex = -1; // Keep track of the assistant message being built
+    let assistantMessageIndex = -1;
 
     es.onmessage = (evt) => {
       console.log("Received SSE event:", evt.data);
@@ -117,30 +101,25 @@ const AppContent = () => {
 
         if (parsed.error) {
           console.error("Stream error:", parsed.error);
-          // Show error to user, maybe add an error message to chat
           setCurrentConversation((prev) => ({
             ...prev,
             messages: [
               ...prev.messages,
               { text: `Error: ${parsed.error}`, sender: "system" },
-            ], // Show error as system msg
+            ],
           }));
           es.close();
           setIsModalVisible(false);
-          // Don't fetch conversations on error usually
           return;
         }
 
-        // Check if backend sent the ID for a newly created conversation
         if (parsed.new_conversation_id) {
           const newId = parsed.new_conversation_id;
           console.log("Received new conversation ID:", newId);
 
-          // systemMessage and newUserMessage are from the outer scope of handleSubmit
-          const currentSystemMessage = systemMessage; // Capture from handleSubmit's scope
-          const currentUserMessage = newUserMessage; // Capture from handleSubmit's scope
+          const currentSystemMessage = systemMessage;
+          const currentUserMessage = newUserMessage;
 
-          // This will be the list of messages *before* adding the assistant's placeholder
           const messagesForNewConversation = [];
           if (currentSystemMessage) {
             messagesForNewConversation.push({
@@ -150,58 +129,46 @@ const AppContent = () => {
           }
           messagesForNewConversation.push(currentUserMessage);
 
-          // First, update the conversation state with the new ID and initial messages
           setCurrentConversation((prevConv) => ({
             ...prevConv,
             id: newId,
             messages: messagesForNewConversation,
-            systemMessage: currentSystemMessage, // Persist system message in conversation state
+            systemMessage: currentSystemMessage,
           }));
 
-          fetchConversations(); // Refresh the conversation list in the sidebar
+          fetchConversations();
 
-          // Now, add the assistant's placeholder message.
-          // This setCurrentConversation call will queue after the previous one.
-          // React will batch these updates if possible.
           setCurrentConversation((prevConv) => ({
-            ...prevConv, // prevConv here will have the ID and messages set by the previous update
+            ...prevConv,
             messages: [
-              ...prevConv.messages, // These are already messagesForNewConversation
-              { text: "", sender: "assistant", llm_model: selectedLLM }, // Add placeholder with selected LLM
+              ...prevConv.messages,
+              { text: "", sender: "assistant", llm_model: selectedLLM },
             ],
           }));
 
-          // The assistant message index is the length of the messages *before* adding the placeholder.
-          // So, it's the length of messagesForNewConversation.
           assistantMessageIndex = messagesForNewConversation.length;
-          return; // Don't process this event as a token
+          return;
         }
 
-        // Handle incoming token
         if (parsed.token !== undefined) {
-          // Check specifically for 'token' key
           const token = parsed.token;
 
           setCurrentConversation((prev) => {
             const newMessages = [...prev.messages];
-            // If this is the first token for the assistant message in this stream
             if (assistantMessageIndex === -1) {
-              // Add a new placeholder assistant message
               newMessages.push({
                 text: token,
                 sender: "assistant",
                 llm_model: selectedLLM,
               });
-              assistantMessageIndex = newMessages.length - 1; // Store index
+              assistantMessageIndex = newMessages.length - 1;
             } else {
-              // Append token to the existing assistant message
               if (newMessages[assistantMessageIndex]) {
                 newMessages[assistantMessageIndex] = {
                   ...newMessages[assistantMessageIndex],
                   text: newMessages[assistantMessageIndex].text + token,
                 };
               } else {
-                // Safety check, should not happen if index logic is correct
                 console.error("Assistant message index out of bounds!");
               }
             }
@@ -214,7 +181,6 @@ const AppContent = () => {
           evt.data,
           err
         );
-        // Potentially close connection or show error
       }
     };
 
@@ -222,15 +188,12 @@ const AppContent = () => {
       es.close();
       eventSourceRef.current = null;
       setIsModalVisible(false);
-      // Only fetch conversations if it was a *new* conversation and *not* an error close
-      // Fetching is already done when new_conversation_id is received.
-      // If continuing, the conversation already exists in the list.
       console.log(`SSE connection closed${isError ? " due to error" : ""}.`);
     };
 
     es.onerror = (err) => {
       console.error("SSE error:", err);
-      handleClose(true); // Pass error flag
+      handleClose(true);
       setCurrentConversation((prev) => ({
         ...prev,
         messages: [
@@ -245,10 +208,8 @@ const AppContent = () => {
     try {
       await api.updateConversationTopic(id, newTopic);
       setEditState({ id: null, text: "" });
-      await fetchConversations(); // Refresh list
-      // Optionally update topic in currentConversation if it's the selected one
+      await fetchConversations();
       if (currentConversation.id === id) {
-        // You might need to adjust the state structure or refetch if topic is stored there
       }
     } catch (error) {
       console.error("Error updating conversation topic:", error);
@@ -257,20 +218,19 @@ const AppContent = () => {
 
   const handleConversationSelected = (conversationId) => {
     if (eventSourceRef.current) {
-      eventSourceRef.current.close(); // Stop any active stream
+      eventSourceRef.current.close();
       setIsModalVisible(false);
     }
-    loadConversationMessages(conversationId); // Use the context function
+    loadConversationMessages(conversationId);
   };
 
   return (
     <>
       <Modal
         isVisible={isModalVisible}
-        message="Thinking..." // Updated message
+        message="Thinking..."
       />
       <div className="header-material">
-        {/* Header content */}
         <h1 className="main-title">Local GPT</h1>
         <p>Now with conversation history!</p>
       </div>
@@ -279,17 +239,15 @@ const AppContent = () => {
           editState={editState}
           setEditState={setEditState}
           onEditComplete={handleEditConversation}
-          onSelectConversation={handleConversationSelected} // Use updated handler
+          onSelectConversation={handleConversationSelected}
           isDeleteMode={isDeleteMode}
           toggleDeleteMode={toggleDeleteMode}
           onDeleteConversation={handleDeleteConversation}
         />
-        {/* Pass messagesEndRef to InteractionArea if scrolling needs to be managed there */}
         <InteractionArea
           onSubmit={handleSubmit}
           messagesEndRef={messagesEndRef}
         />
-        <ControlPanel /> {/* Consider adding system prompt input here */}
       </div>
     </>
   );

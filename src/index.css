@@ -1,7 +1,7 @@
-/* Set the height of the root React component */
+/* Set the height of the root React component. */
 #root {
   display: flex;
-  flex-direction: column; /* This stacks the flex items vertically */
+  flex-direction: column;
   height: 100vh;
 }
 
@@ -22,7 +22,7 @@ body {
 .app-container {
   display: flex;
   margin: 20px;
-  /* https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-y#hidden */
+  /* Reference: https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-y#hidden */
   height: 100%;
   overflow-y: hidden;
 }
@@ -55,12 +55,12 @@ body {
   padding-right: 20px;  
   margin-bottom: 20px;
   height: 60%;
-  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-y: auto;
 }
 
 .control-panel {
   background-color: #d4d4d4;
-  width: 25%; /* Larger than the past-chats-panel */
+  width: 25%;
   padding: 20px;
   display: flex;
   flex-direction: column; 

@@ -25,7 +25,7 @@ const ConversationPanel = ({
 
   const toggleDeleteMode = () => {
     setIsDeleteMode((prev) => !prev);
-    setEditState({ id: null, text: "" }); // Exit edit mode when toggling
+    setEditState({ id: null, text: "" });
   };
 
   return (

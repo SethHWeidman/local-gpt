@@ -12,7 +12,6 @@ const ConversationItem = ({
   isDeleteMode,
   onDelete,
 }) => {
-  // Determine which model indicator to show
   const getModelIndicator = (conversation) => {
     if (!conversation.llmId) return MODEL_INDICATORS.NONE;
     return MODEL_INDICATORS[conversation.llmId] || MODEL_INDICATORS.NONE;
@@ -44,7 +43,7 @@ const ConversationItem = ({
         <button
           className="delete-button"
           onClick={(e) => {
-            e.stopPropagation(); // Prevent selecting the conversation
+            e.stopPropagation();
             onDelete(conversation.id);
           }}
         >

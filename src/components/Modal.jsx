@@ -1,4 +1,4 @@
-import "./Modal.css"; // Import the CSS file
+import "./Modal.css";
 
 const Modal = ({ isVisible, message }) => {
   if (!isVisible) return null;
