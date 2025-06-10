@@ -8,6 +8,7 @@ them via their web UIs.
 * Engage in a conversation with ChatGPT and Claude
 * Modify the system message to change the model behavior
 * Access your prior interactions via a sidebar
+
 ## Model Configuration
 
 The set of supported models and model categories is centralized in `shared/models.json`
