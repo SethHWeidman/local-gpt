@@ -1,7 +1,7 @@
 // Rename LLMResponse to ChatMessage for clarity
 import ChatMessage from "./ChatMessage"; // Assuming you rename LLMResponse.js
 import { useConversation } from "../contexts/ConversationContext";
-import { OPENAI_MODELS } from "../constants";
+import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
 import "./InteractionArea.css";
 
 // Accept messagesEndRef prop for scrolling
@@ -73,11 +73,20 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             value={selectedLLM}
             onChange={handleLLMChange}
           >
-            {OPENAI_MODELS.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
+            <optgroup label="OpenAI">
+              {OPENAI_MODELS.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Anthropic">
+              {ANTHROPIC_MODELS.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <button
             className="submit-button"

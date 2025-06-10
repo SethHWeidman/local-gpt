@@ -31,10 +31,11 @@ OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 # ---------- Anthropic (Claude) setup -------------------------------------
 ANTHROPIC_CLIENT = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
 
-MODEL_CLAUDE_REASONING = "claude-sonnet-4-0"
+# Default Anthropic Claude model, used if no specific model chosen
 MAX_ANTHROPIC_TOKENS = 8192
 
-ANTHROPIC_MODELS = {MODEL_CLAUDE_REASONING}
+# Supported Anthropic Claude models
+ANTHROPIC_MODELS = {"claude-sonnet-4-0", "claude-opus-4-0"}
 # -------------------------------------------------------------------------
 
 NO_TEMPERATURE_MODELS = {"o4-mini"}
@@ -42,16 +43,13 @@ NO_TEMPERATURE_MODELS = {"o4-mini"}
 
 def _anthropic_call(
     *,
+    model: str = "claude-sonnet-4-0",
     messages: list[dict],
     system_prompt: str | None,
     max_tokens: int,
     stream: bool = False,
 ):
-    params = {
-        "model": MODEL_CLAUDE_REASONING,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
+    params = {"model": model, "max_tokens": max_tokens, "messages": messages}
     if system_prompt:
         params["system"] = system_prompt
     if stream:
@@ -195,6 +193,7 @@ def stream_interaction() -> flaskResponse:
                 anthro_messages = [m for m in messages_for_llm if m["role"] != "system"]
                 # 2. Stream from Claude
                 with _anthropic_call(
+                    model=model_to_use,
                     messages=anthro_messages,
                     system_prompt=system_message or None,
                     max_tokens=MAX_ANTHROPIC_TOKENS,
