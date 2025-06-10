@@ -1,0 +1,13 @@
+{
+  "anthropic_models": [
+    "claude-sonnet-4-0",
+    "claude-opus-4-0"
+  ],
+  "openai_models": [
+    "gpt-4.1-2025-04-14",
+    "o4-mini"
+  ],
+  "reasoning_models": [
+    "o4-mini"
+  ]
+}

@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+from pathlib import Path
 
 import flask
 from flask import request as flask_request
@@ -28,17 +29,21 @@ flask_cors.CORS(FLASK_APP)
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
-# ---------- Anthropic (Claude) setup -------------------------------------
+# ---------- Model configuration ------------------------------------------
+HERE = Path(__file__).resolve().parent
+MODEL_CONFIG = json.loads((HERE.parent / "src" / "shared" / "models.json").read_text())
+
+# Anthropic (Claude) setup
 ANTHROPIC_CLIENT = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
-
-# Default Anthropic Claude model, used if no specific model chosen
 MAX_ANTHROPIC_TOKENS = 8192
+ANTHROPIC_MODELS = set(MODEL_CONFIG["anthropic_models"])
 
-# Supported Anthropic Claude models
-ANTHROPIC_MODELS = {"claude-sonnet-4-0", "claude-opus-4-0"}
+# Supported OpenAI models
+OPENAI_MODELS = set(MODEL_CONFIG["openai_models"])
+
+# Models that should run with no temperature ("reasoning models")
+REASONING_MODELS = set(MODEL_CONFIG["reasoning_models"])
 # -------------------------------------------------------------------------
-
-NO_TEMPERATURE_MODELS = {"o4-mini"}
 
 
 def _anthropic_call(
@@ -218,7 +223,7 @@ def stream_interaction() -> flaskResponse:
                     "max_completion_tokens": 1024,
                     "stream": True,
                 }
-                if model_to_use not in NO_TEMPERATURE_MODELS:
+                if model_to_use not in REASONING_MODELS:
                     params["temperature"] = 0.8
                 response = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
 
@@ -254,11 +259,21 @@ def stream_interaction() -> flaskResponse:
                     print(f"Attempting to save final message for conv {conv_id}")
                     conn2 = get_db_connection()
                     cur2 = conn2.cursor()
+                    provider = (
+                        "anthropic" if chosen_llm in ANTHROPIC_MODELS else "openai"
+                    )
                     cur2.execute(
                         "INSERT INTO messages "
-                        "(conversation_id, message_text, sender_name, llm_model) "
-                        "VALUES (%s, %s, %s, %s)",
-                        (conv_id, final_assistant_text, "assistant", chosen_llm),
+                        "(conversation_id, message_text, sender_name, llm_model, "
+                        "llm_provider) "
+                        "VALUES (%s, %s, %s, %s, %s)",
+                        (
+                            conv_id,
+                            final_assistant_text,
+                            "assistant",
+                            chosen_llm,
+                            provider,
+                        ),
                     )
                     conn2.commit()
                     # Add log
@@ -326,10 +341,12 @@ def get_messages(conversation_id: int) -> flaskResponse:
         # Use RealDictCursor for dict-like rows
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            """SELECT id, message_text, sender_name, sent_at, llm_model
-               FROM messages
-               WHERE conversation_id = %s
-               ORDER BY sent_at ASC""",
+            """
+                SELECT id, message_text, sender_name, sent_at, llm_model, llm_provider
+                FROM messages
+                WHERE conversation_id = %s
+                ORDER BY sent_at ASC
+            """,
             (conversation_id,),
         )
         messages_raw = cur.fetchall()
@@ -344,6 +361,7 @@ def get_messages(conversation_id: int) -> flaskResponse:
                     # Send timestamp as ISO string
                     'sent_at': msg['sent_at'].isoformat(),
                     'llm_model': msg['llm_model'],  # Include llm_model
+                    'llm_provider': msg['llm_provider'],  # Include provider
                 }
             )
         return flask.jsonify(messages_processed)

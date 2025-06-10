@@ -1,14 +1,16 @@
 import ReactMarkdown from "react-markdown";
 import "./ChatMessage.css"; // Create this CSS file for styling
+import { ANTHROPIC_MODELS } from "../constants";
 
 // Accepts a single message object: { text: string, sender: 'user' | 'assistant' | 'system' }
 const ChatMessage = ({ message }) => {
-  const { text, sender } = message;
+  const { text, sender, llm_model } = message;
 
-  // Determine the CSS class based on the sender
+  const isAnthropic =
+    sender === "assistant" && ANTHROPIC_MODELS.includes(llm_model);
   const messageClass = `chat-message ${
     sender === "user" ? "user-message" : "assistant-message"
-  }`;
+  }${isAnthropic ? " anthropic-message" : ""}`;
 
   // Don't render empty messages (e.g., placeholder before stream starts)
   // Or render them differently if needed. Let's just skip empty ones for now.
