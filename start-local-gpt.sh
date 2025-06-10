@@ -12,10 +12,10 @@ BACKEND_PID=$!
 # Wait for a few seconds to ensure the backend server starts before the frontend
 sleep 5
 
-# Navigate to the frontend directory and start the frontend application
+# Navigate to the project root and start the frontend application
 echo "Starting the frontend application..."
-cd ../src
-npm start &
+cd ..
+npm run dev &
 
 # Optional: if you want to stop both servers when this script is interrupted
 trap "echo 'Stopping servers...'; kill $BACKEND_PID; exit 1" INT

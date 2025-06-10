@@ -31,7 +31,7 @@ OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
 # ---------- Model configuration ------------------------------------------
 HERE = Path(__file__).resolve().parent
-MODEL_CONFIG = json.loads((HERE.parent / "src" / "shared" / "models.json").read_text())
+MODEL_CONFIG = json.loads((HERE.parent / "shared" / "models.json").read_text())
 
 # Anthropic (Claude) setup
 ANTHROPIC_CLIENT = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env

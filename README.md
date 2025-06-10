@@ -10,7 +10,7 @@ them via their web UIs.
 * Access your prior interactions via a sidebar
 ## Model Configuration
 
-The set of supported models and model categories is centralized in `src/shared/models.json`
+The set of supported models and model categories is centralized in `shared/models.json`
 and automatically loaded by both the front-end (`src/constants.js`) and the back-end
 (`backend/backend.py`) to prevent divergence. It contains the following keys:
 
@@ -20,8 +20,8 @@ and automatically loaded by both the front-end (`src/constants.js`) and the back
 
 ## Setup
 
-1. Install Python and React. Python 3.12 and React 18 work; previous Python and React
-   versions may work as well.
+1. Install Python and Node.js. Python 3.12 and Node.js 14+ work; previous versions may
+   work as well.
 2. Install PostGRES and start it. The following two commands should work assuming you 
    have Homebrew installed:
     1. `brew install postgresql`

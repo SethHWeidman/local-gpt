@@ -1,4 +1,4 @@
-import modelConfig from "./shared/models.json";
+import modelConfig from "../shared/models.json";
 
 export const API_ENDPOINTS = {
   CONVERSATIONS: "http://localhost:5005/api/conversations",
