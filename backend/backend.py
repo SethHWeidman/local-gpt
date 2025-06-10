@@ -31,11 +31,11 @@ OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 # ---------- Anthropic (Claude) setup -------------------------------------
 ANTHROPIC_CLIENT = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
 
-MODEL_CLAUDE_REASONING = "claude-sonnet-4-0"
+# Default Anthropic Claude model, used if no specific model chosen
 MAX_ANTHROPIC_TOKENS = 8192
 
 # Supported Anthropic Claude models
-ANTHROPIC_MODELS = {MODEL_CLAUDE_REASONING, "claude-opus-4-0"}
+ANTHROPIC_MODELS = {"claude-sonnet-4-0", "claude-opus-4-0"}
 # -------------------------------------------------------------------------
 
 NO_TEMPERATURE_MODELS = {"o4-mini"}
@@ -43,117 +43,18 @@ NO_TEMPERATURE_MODELS = {"o4-mini"}
 
 def _anthropic_call(
     *,
-    model: str = MODEL_CLAUDE_REASONING,
+    model: str = "claude-sonnet-4-0",
     messages: list[dict],
     system_prompt: str | None,
     max_tokens: int,
     stream: bool = False,
 ):
-    params = {
-        "model": model,
-        "max_tokens": max_tokens,
-        "messages": messages,
-    }
+    params = {"model": model, "max_tokens": max_tokens, "messages": messages}
     if system_prompt:
         params["system"] = system_prompt
     if stream:
         params["stream"] = True
     return ANTHROPIC_CLIENT.messages.create(**params)
-
-
-@FLASK_APP.route('/submit-interaction', methods=['POST', 'OPTIONS'])
-def submit_text() -> flaskResponse:
-    if flask_request.method == 'OPTIONS':
-        return _build_cors_preflight_response()
-    flask_request_json = flask_request.json
-    user_text = flask_request_json.get('userText', '')
-    system_message = flask_request_json.get('systemMessage', '')
-    # Allow client to specify the LLM model name; default to gpt-4.1-2025-04-14
-    model_choice = flask_request_json.get('llm', 'gpt-4.1-2025-04-14')
-
-    conversation_topic = _get_current_date_and_time_string()
-
-    # initialize DB connection
-    conn = None
-    try:
-        conn = get_db_connection()
-    except:
-        print("An error occurred:", e)
-
-    cur = None
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO conversations (conversation_topic) "
-            "VALUES (%s) "
-            "RETURNING id",
-            (conversation_topic,),
-        )
-        conversation_id = cur.fetchone()[0]
-
-        # Insert the user message
-        cur.execute(
-            "INSERT INTO messages (conversation_id, message_text, sender_name) "
-            "VALUES (%s, %s, %s)",
-            (conversation_id, user_text, "user"),
-        )
-
-        # Insert the system message
-        cur.execute(
-            "INSERT INTO messages (conversation_id, message_text, sender_name) "
-            "VALUES (%s, %s, %s)",
-            (conversation_id, system_message, "system"),
-        )
-
-        # Send request to the chosen LLM
-        if model_choice in ANTHROPIC_MODELS:
-            chat_resp = _anthropic_call(
-                model=model_choice,
-                messages=[{"role": "user", "content": user_text}],
-                system_prompt=system_message or None,
-                max_tokens=MAX_ANTHROPIC_TOKENS,
-            )
-            chat_completions_message_content = "".join(
-                blk.text for blk in chat_resp.content if blk.type == "text"
-            ).strip()
-        else:
-            params = {
-                "model": model_choice,
-                "messages": [
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": user_text},
-                ],
-                "max_completion_tokens": 1024,
-            }
-            if model_choice not in NO_TEMPERATURE_MODELS:
-                params["temperature"] = 1
-            chat_completion = OPEN_AI_CHAT_COMPLETIONS_CLIENT.create(**params)
-            choice = chat_completion.choices[0]
-            chat_completions_message_content = choice.message.content
-
-        # Insert the assistant message with llm_model
-        cur.execute(
-            "INSERT INTO messages (conversation_id, message_text, sender_name, llm_model) "
-            "VALUES (%s, %s, %s, %s)",
-            (
-                conversation_id,
-                chat_completions_message_content,
-                "assistant",
-                model_choice,
-            ),
-        )
-
-        # Commit transaction
-        conn.commit()
-    except Exception as e:
-        print("An error occurred:", e)
-        conn.rollback()
-
-    finally:
-        if conn:
-            release_db_connection(conn)
-
-    return flask.jsonify({'GPT-4 Response': chat_completions_message_content})
 
 
 @FLASK_APP.route("/stream", methods=["GET"])
