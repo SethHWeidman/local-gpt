@@ -1,3 +1,12 @@
+"""
+Flask backend for Local-GPT.
+
+Provides endpoints for:
+- managing conversations and messages.
+- streaming LLM responses via Server-Sent Events (SSE).
+- database connection pooling and CORS preflight handling.
+"""
+
 from datetime import datetime
 import json
 import pathlib
@@ -10,6 +19,7 @@ import openai
 import anthropic
 import psycopg2.extensions, psycopg2.extras, psycopg2.pool
 
+## Connection pool for PostgreSQL database.
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
     1,
     20,
@@ -28,10 +38,8 @@ flask_cors.CORS(FLASK_APP)
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
-current_file = pathlib.Path(__file__)
-current_filepath = current_file.resolve()
-current_filepath_parent = current_filepath.parent
-config_filepath = current_filepath_parent.parent / "shared" / "models.json"
+current_filepath = pathlib.Path(__file__).resolve()
+config_filepath = current_filepath.parent.parent / "shared" / "models.json"
 MODEL_CONFIG = json.loads(config_filepath.read_text())
 
 ANTHROPIC_CLIENT = anthropic.Anthropic()
@@ -51,6 +59,10 @@ def _anthropic_call(
     max_tokens: int,
     stream: bool = False,
 ):
+    """
+    Call the Anthropic API for chat completions with optional system prompt and
+    streaming.
+    """
     params = {"model": model, "max_tokens": max_tokens, "messages": messages}
     if system_prompt:
         params["system"] = system_prompt
@@ -62,10 +74,13 @@ def _anthropic_call(
 @FLASK_APP.route("/stream", methods=["GET"])
 def stream_interaction() -> flaskResponse:
     """
-    1. Creates a new conversation in the DB.
-    2. Saves user/system messages.
-    3. Streams partial tokens from OpenAI.
-    4. Once streaming is done, saves the assistant's final message to DB.
+    Stream an OpenAI or Anthropic LLM response via Server-Sent Events (SSE).
+
+    Steps:
+    1. Create or continue a conversation record in the database.
+    2. Save user and optional system messages.
+    3. Stream tokens from the chosen LLM to the client in real time.
+    4. Persist the final assistant message after streaming completes.
     """
     user_text = flask_request.args.get("userText", "")
     system_message = flask_request.args.get("systemMessage", "")
@@ -95,10 +110,12 @@ def stream_interaction() -> flaskResponse:
                 print(f"Continuing conversation ID: {conversation_id}")
 
                 cur.execute(
-                    """SELECT sender_name, message_text
-                       FROM messages
-                       WHERE conversation_id = %s
-                       ORDER BY sent_at ASC""",
+                    """
+                    SELECT sender_name, message_text
+                    FROM messages
+                    WHERE conversation_id = %s
+                    ORDER BY sent_at ASC
+                    """,
                     (conversation_id,),
                 )
                 existing_messages = cur.fetchall()
@@ -120,8 +137,10 @@ def stream_interaction() -> flaskResponse:
         if is_new_conversation:
             conversation_topic = _get_current_date_and_time_string()
             cur.execute(
-                "INSERT INTO conversations (conversation_topic) "
-                "VALUES (%s) RETURNING id",
+                """
+                INSERT INTO conversations (conversation_topic)
+                VALUES (%s) RETURNING id
+                """,
                 (conversation_topic,),
             )
             conversation_id_row = cur.fetchone()
@@ -133,16 +152,20 @@ def stream_interaction() -> flaskResponse:
 
             if system_message:
                 cur.execute(
-                    "INSERT INTO messages (conversation_id, message_text, sender_name) "
-                    "VALUES (%s, %s, %s)",
+                    """
+                    INSERT INTO messages (conversation_id, message_text, sender_name)
+                    VALUES (%s, %s, %s)
+                    """,
                     (conversation_id, system_message, "system"),
                 )
 
         messages_for_llm.append({"role": "user", "content": user_text})
 
         cur.execute(
-            "INSERT INTO messages "
-            "(conversation_id, message_text, sender_name) VALUES (%s, %s, %s)",
+            """
+            INSERT INTO messages (conversation_id, message_text, sender_name)
+            VALUES (%s, %s, %s)
+            """,
             (conversation_id, user_text, "user"),
         )
         conn.commit()
@@ -231,10 +254,16 @@ def stream_interaction() -> flaskResponse:
                         "anthropic" if chosen_llm in ANTHROPIC_MODELS else "openai"
                     )
                     cur2.execute(
-                        "INSERT INTO messages "
-                        "(conversation_id, message_text, sender_name, llm_model, "
-                        "llm_provider) "
-                        "VALUES (%s, %s, %s, %s, %s)",
+                        """
+                        INSERT INTO messages (
+                            conversation_id, 
+                            message_text, 
+                            sender_name, 
+                            llm_model, 
+                            llm_provider
+                        )
+                        VALUES (%s, %s, %s, %s, %s)
+                        """,
                         (
                             conv_id,
                             final_assistant_text,
@@ -272,17 +301,22 @@ def stream_interaction() -> flaskResponse:
 
 @FLASK_APP.route("/api/conversations", methods=['GET'])
 def get_conversations() -> flaskResponse:
+    """
+    GET /api/conversations
+
+    Return a list of all conversations with their IDs and topics.
+    """
     conn = None
     cur = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            '''
-            SELECT id, conversation_topic 
-            FROM conversations 
+            """
+            SELECT id, conversation_topic
+            FROM conversations
             ORDER BY created_at DESC
-            '''
+            """
         )
         conversations = cur.fetchall()
         return flask.jsonify(
@@ -299,6 +333,11 @@ def get_conversations() -> flaskResponse:
 
 @FLASK_APP.route("/api/messages/<int:conversation_id>", methods=['GET'])
 def get_messages(conversation_id: int) -> flaskResponse:
+    """
+    GET /api/messages/<conversation_id>
+
+    Return all messages for a given conversation in chronological order.
+    """
     conn = None
     cur = None
     try:
@@ -306,10 +345,10 @@ def get_messages(conversation_id: int) -> flaskResponse:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
             """
-                SELECT id, message_text, sender_name, sent_at, llm_model, llm_provider
-                FROM messages
-                WHERE conversation_id = %s
-                ORDER BY sent_at ASC
+            SELECT id, message_text, sender_name, sent_at, llm_model, llm_provider
+            FROM messages
+            WHERE conversation_id = %s
+            ORDER BY sent_at ASC
             """,
             (conversation_id,),
         )
@@ -338,6 +377,11 @@ def get_messages(conversation_id: int) -> flaskResponse:
 
 @FLASK_APP.route("/api/conversations/<int:id>", methods=['PUT'])
 def update_conversation(id: int) -> flaskResponse:
+    """
+    PUT /api/conversations/<id>
+
+    Update the topic of the specified conversation. Expects JSON body with 'topic'.
+    """
     data = flask_request.json
     topic = data.get('topic')
     conn = None
@@ -363,6 +407,11 @@ def update_conversation(id: int) -> flaskResponse:
 
 @FLASK_APP.route("/api/conversations/<int:id>", methods=['DELETE'])
 def delete_conversation(id: int) -> flaskResponse:
+    """
+    DELETE /api/conversations/<id>
+
+    Delete the specified conversation and all associated messages.
+    """
     conn = None
     cur = None
     try:
@@ -383,29 +432,19 @@ def delete_conversation(id: int) -> flaskResponse:
             release_db_connection(conn)
 
 
-def _build_cors_preflight_response() -> flaskResponse:
-    response = flask.jsonify({})
-    response_headers = response.headers
-    response_headers.add('Access-Control-Allow-Origin', '*')
-    response_headers.add(
-        'Access-Control-Allow-Headers',
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-    )
-    response_headers.add('Access-Control-Allow-Methods', "GET, POST, PATCH, DELETE")
-    return response
-
-
 def _get_current_date_and_time_string() -> str:
+    """Return the current date and time as a human-readable string."""
     now = datetime.now()
-
     return now.strftime("%B %d, %Y, %-I:%M %p")
 
 
 def get_db_connection() -> psycopg2.extensions.connection:
+    """Get a database connection from the PostgreSQL pool."""
     return postgreSQL_pool.getconn()
 
 
 def release_db_connection(conn: psycopg2.extensions.connection) -> None:
+    """Release a database connection back to the PostgreSQL pool."""
     postgreSQL_pool.putconn(conn)
 
 
