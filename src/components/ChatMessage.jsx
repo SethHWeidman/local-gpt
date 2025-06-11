@@ -11,7 +11,6 @@ const ChatMessage = ({ message }) => {
     sender === "user" ? "user-message" : "assistant-message"
   }${isAnthropic ? " anthropic-message" : ""}`;
 
-
   if (sender === "system") {
     return null;
   }

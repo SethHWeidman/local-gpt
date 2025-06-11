@@ -5,6 +5,7 @@ import {
 } from "./contexts/ConversationContext";
 import Modal from "./components/Modal";
 import ConversationPanel from "./components/ConversationPanel";
+import ControlPanel from "./components/ControlPanel";
 import InteractionArea from "./components/InteractionArea";
 import api from "./api";
 
@@ -226,10 +227,7 @@ const AppContent = () => {
 
   return (
     <>
-      <Modal
-        isVisible={isModalVisible}
-        message="Thinking..."
-      />
+      <Modal isVisible={isModalVisible} message="Thinking..." />
       <div className="header-material">
         <h1 className="main-title">Local GPT</h1>
         <p>Now with conversation history!</p>
@@ -248,6 +246,7 @@ const AppContent = () => {
           onSubmit={handleSubmit}
           messagesEndRef={messagesEndRef}
         />
+        <ControlPanel />
       </div>
     </>
   );
