@@ -1,3 +1,9 @@
+/**
+ * ConversationItem.jsx
+ *
+ * Renders an item in the conversation list.
+ * Supports editing, deletion, and displays a model indicator.
+ */
 import { MODEL_INDICATORS } from "../constants";
 import "./ConversationItem.css";
 
@@ -12,6 +18,7 @@ const ConversationItem = ({
   isDeleteMode,
   onDelete,
 }) => {
+  // Return the single-character indicator for the conversation's LLM.
   const getModelIndicator = (conversation) => {
     if (!conversation.llmId) return MODEL_INDICATORS.NONE;
     return MODEL_INDICATORS[conversation.llmId] || MODEL_INDICATORS.NONE;
@@ -39,6 +46,7 @@ const ConversationItem = ({
           </span>
         </div>
       )}
+      {/* Show delete button when in delete mode. */}
       {isDeleteMode && (
         <button
           className="delete-button"

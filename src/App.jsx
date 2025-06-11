@@ -1,3 +1,10 @@
+/**
+ * App.jsx
+ *
+ * Defines the main application components:
+ * - AppContent: handles conversation UI, user input, and streaming responses.
+ * - App: wraps AppContent with ConversationProvider for global state.
+ */
 import { useState, useRef, useEffect } from "react";
 import {
   ConversationProvider,
@@ -26,6 +33,7 @@ const AppContent = () => {
   } = useConversation();
 
   const messagesEndRef = useRef(null);
+  // Scroll to the end of the chat when new messages arrive.
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
@@ -35,8 +43,10 @@ const AppContent = () => {
     }
   }, [currentConversation.messages]);
 
+  // Toggle delete mode to enable removing conversations.
   const toggleDeleteMode = () => setIsDeleteMode((prev) => !prev);
 
+  // Delete a conversation and refresh the conversation list.
   const handleDeleteConversation = async (id) => {
     try {
       await api.deleteConversation(id);
@@ -53,6 +63,7 @@ const AppContent = () => {
     }
   };
 
+  // Send user input and stream assistant response via SSE.
   const handleSubmit = async () => {
     const textToSend = currentUserInput.trim();
 
@@ -95,6 +106,7 @@ const AppContent = () => {
 
     let assistantMessageIndex = -1;
 
+    // Handle SSE events for streaming assistant responses.
     es.onmessage = (evt) => {
       console.log("Received SSE event:", evt.data);
       try {
@@ -192,6 +204,7 @@ const AppContent = () => {
       console.log(`SSE connection closed${isError ? " due to error" : ""}.`);
     };
 
+    // Close SSE connection on error and display a system message.
     es.onerror = (err) => {
       console.error("SSE error:", err);
       handleClose(true);
@@ -205,6 +218,7 @@ const AppContent = () => {
     };
   };
 
+  // Update conversation topic and refresh the conversation list.
   const handleEditConversation = async (id, newTopic) => {
     try {
       await api.updateConversationTopic(id, newTopic);
@@ -217,6 +231,7 @@ const AppContent = () => {
     }
   };
 
+  // Load messages for selected conversation and reset any active stream.
   const handleConversationSelected = (conversationId) => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();

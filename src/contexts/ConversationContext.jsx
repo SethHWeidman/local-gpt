@@ -1,3 +1,15 @@
+/**
+ * ConversationContext.jsx
+ *
+ * Provides conversation state and actions to the React component tree.
+ *
+ * - conversations: list of available conversations.
+ * - currentConversation: object with id, messages, and systemMessage.
+ * - currentUserInput: text for the next user message.
+ * - selectedLLM: the chosen language model identifier.
+ *
+ * Exposes functions to fetch conversations and messages from the backend.
+ */
 import {
   createContext,
   useState,
@@ -21,6 +33,7 @@ export const ConversationProvider = ({ children }) => {
   const [currentUserInput, setCurrentUserInput] = useState("");
   const [selectedLLM, setSelectedLLM] = useState(OPENAI_MODELS[0]);
 
+  // Fetch the list of conversations from the backend.
   const fetchConversations = useCallback(async () => {
     try {
       const data = await api.fetchConversations();
@@ -30,10 +43,12 @@ export const ConversationProvider = ({ children }) => {
     }
   }, []);
 
+  // Fetch conversations when the provider mounts.
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
 
+  // Load messages for a given conversation or reset state if none is selected.
   const loadConversationMessages = useCallback(async (conversationId) => {
     if (!conversationId) {
       setCurrentConversation({ id: null, messages: [], systemMessage: "" });

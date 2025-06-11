@@ -1,3 +1,6 @@
+/**
+ * API utility for interacting with the backend conversation and message endpoints.
+ */
 import { API_ENDPOINTS } from "./constants";
 
 const api = {

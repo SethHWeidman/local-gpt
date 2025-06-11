@@ -1,3 +1,8 @@
+/**
+ * InteractionArea.jsx
+ *
+ * Renders the message list, model selector, and input box for user interactions.
+ */
 import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
@@ -17,6 +22,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     setCurrentUserInput(e.target.value);
   };
 
+  // Submit on Enter when Shift is not held.
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -31,6 +37,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
   return (
     <div className="current-llm-interaction">
       <div className="message-list">
+        {/* Display messages or placeholder when no conversation is selected. */}
         {messages && messages.length > 0 ? (
           messages.map((msg, index) => (
             <ChatMessage
@@ -56,6 +63,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
         ></textarea>
         <div className="controls-container">
           {" "}
+          {/* Allow selecting the language model for the conversation. */}
           <select
             className="llm-selector"
             value={selectedLLM}
@@ -76,6 +84,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
               ))}
             </optgroup>
           </select>
+          {/* Send the current message to the backend. */}
           <button
             className="submit-button"
             onClick={onSubmit}

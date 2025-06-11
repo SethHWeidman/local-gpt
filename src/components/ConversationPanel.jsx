@@ -1,3 +1,9 @@
+/**
+ * ConversationPanel.jsx
+ *
+ * Displays a list of past conversations.
+ * Enables editing of titles and toggling delete mode.
+ */
 import { useState } from "react";
 import ConversationItem from "./ConversationItem";
 import { useConversation } from "../contexts/ConversationContext";
@@ -13,16 +19,19 @@ const ConversationPanel = ({
   const { conversations } = useConversation();
   const [isDeleteMode, setIsDeleteMode] = useState(false);
 
+  // Enter edit mode for a conversation title on double click.
   const handleDoubleClick = (conv) => {
     setEditState({ id: conv.id, text: conv.topic });
   };
 
+  // Save edits when pressing Enter.
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       onEditComplete(editState.id, editState.text);
     }
   };
 
+  // Toggle delete mode and reset any active edits.
   const toggleDeleteMode = () => {
     setIsDeleteMode((prev) => !prev);
     setEditState({ id: null, text: "" });
@@ -43,6 +52,7 @@ const ConversationPanel = ({
           <span>{isDeleteMode ? "Off" : "On"}</span>
         </label>
       </div>
+      {/* Render each conversation as a list item. */}
       {conversations?.map((conv) => (
         <ConversationItem
           key={conv.id}

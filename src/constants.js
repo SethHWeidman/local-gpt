@@ -1,3 +1,10 @@
+/**
+ * Application-wide constants and model configuration.
+ *
+ * API_ENDPOINTS holds the REST API base URLs.
+ * MODEL_INDICATORS maps LLM providers to their UI indicator letters.
+ * OPENAI_MODELS, ANTHROPIC_MODELS, and REASONING_MODELS are lists loaded from shared/models.json.
+ */
 import modelConfig from "../shared/models.json";
 
 export const API_ENDPOINTS = {
