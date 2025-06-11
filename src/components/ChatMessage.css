@@ -1,4 +1,5 @@
 .chat-message {
+    position: relative;
     max-width: 70%;
     padding: 10px 15px;
     margin-bottom: 10px;
@@ -35,3 +36,31 @@
       & code { background-color: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; }
       & pre { background-color: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px; overflow-x: auto; }
   }
+
+.chat-message .model-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: #333;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.chat-message:hover .model-badge {
+    opacity: 1;
+}
+
+.assistant-message .model-badge {
+    background-color: #E2E6EB;
+}
+
+.assistant-message.anthropic-message .model-badge {
+    background-color: #FFE2BA;
+}

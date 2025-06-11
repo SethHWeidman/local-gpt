@@ -26,6 +26,9 @@ const ChatMessage = ({ message }) => {
 
   return (
     <div className={messageClass}>
+      {sender === "assistant" && llm_model && (
+        <div className="model-badge">{llm_model}</div>
+      )}
       <div className="message-content">
         <ReactMarkdown>{text || "..."}</ReactMarkdown>{" "}
       </div>
