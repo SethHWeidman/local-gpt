@@ -1,3 +1,10 @@
+/**
+ * Application-wide constants and model configuration.
+ *
+ * API_ENDPOINTS holds the REST API base URLs.
+ * MODEL_INDICATORS maps LLM providers to their UI indicator letters.
+ * OPENAI_MODELS, ANTHROPIC_MODELS, and REASONING_MODELS are lists loaded from shared/models.json.
+ */
 import modelConfig from "../shared/models.json";
 
 export const API_ENDPOINTS = {
@@ -10,11 +17,8 @@ export const MODEL_INDICATORS = {
   CLAUDE: "C",
 };
 
-// List of available OpenAI models for selection in the UI
 export const OPENAI_MODELS = modelConfig.openai_models;
 
-// List of available Anthropic Claude models for selection in the UI
 export const ANTHROPIC_MODELS = modelConfig.anthropic_models;
 
-// Models that should run with no temperature ("reasoning models")
 export const REASONING_MODELS = modelConfig.reasoning_models;

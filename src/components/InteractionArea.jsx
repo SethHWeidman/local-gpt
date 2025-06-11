@@ -1,31 +1,31 @@
-// Rename LLMResponse to ChatMessage for clarity
-import ChatMessage from "./ChatMessage"; // Assuming you rename LLMResponse.js
+/**
+ * InteractionArea.jsx
+ *
+ * Renders the message list, model selector, and input box for user interactions.
+ */
+import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
 import "./InteractionArea.css";
 
-// Accept messagesEndRef prop for scrolling
 const InteractionArea = ({ onSubmit, messagesEndRef }) => {
-  // Get messages array and current input state from context
   const {
     currentConversation,
     currentUserInput,
     setCurrentUserInput,
-    selectedLLM, // Get selectedLLM from context
-    setSelectedLLM, // Get setSelectedLLM from context} =
+    selectedLLM,
+    setSelectedLLM,
   } = useConversation();
   const { messages } = currentConversation;
 
-  // Handle changes in the text area
   const handleTextChange = (e) => {
     setCurrentUserInput(e.target.value);
   };
 
-  // Handle Enter key press for submission (optional UX improvement)
+  // Submit on Enter when Shift is not held.
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      // Submit on Enter, allow Shift+Enter for newline
-      e.preventDefault(); // Prevent default newline behavior
+      e.preventDefault();
       onSubmit();
     }
   };
@@ -36,16 +36,13 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
 
   return (
     <div className="current-llm-interaction">
-      {/* Renamed class for clarity */}
       <div className="message-list">
+        {/* Display messages or placeholder when no conversation is selected. */}
         {messages && messages.length > 0 ? (
           messages.map((msg, index) => (
-            // Use a unique key, message id from DB would be best if available, otherwise index+sender
             <ChatMessage
               key={`${currentConversation.id}-${index}-${msg.sender}`}
               message={msg}
-              // In the future, you'll pass the llm_model for this message here
-              // llmModel={msg.llm_model}
             />
           ))
         ) : (
@@ -57,17 +54,16 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       </div>
       <div className="input-area">
         {" "}
-        {/* Wrapper for input + button */}
         <textarea
           className="user-input"
-          value={currentUserInput} // Bind to currentUserInput from context
+          value={currentUserInput}
           onChange={handleTextChange}
-          onKeyDown={handleKeyDown} // Add keydown listener
-          placeholder="Type your message here..." // Updated placeholder
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message here..."
         ></textarea>
         <div className="controls-container">
           {" "}
-          {/* New container for alignment */}
+          {/* Allow selecting the language model for the conversation. */}
           <select
             className="llm-selector"
             value={selectedLLM}
@@ -88,10 +84,11 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
               ))}
             </optgroup>
           </select>
+          {/* Send the current message to the backend. */}
           <button
             className="submit-button"
             onClick={onSubmit}
-            disabled={!currentUserInput.trim()} // Disable if input is empty
+            disabled={!currentUserInput.trim()}
           >
             Send
           </button>

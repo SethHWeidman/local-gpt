@@ -1,34 +1,33 @@
+/**
+ * ChatMessage.jsx
+ *
+ * Renders a single chat message. System messages are not displayed.
+ * Uses ReactMarkdown to render message text with Markdown support.
+ */
 import ReactMarkdown from "react-markdown";
-import "./ChatMessage.css"; // Create this CSS file for styling
+import "./ChatMessage.css";
 import { ANTHROPIC_MODELS } from "../constants";
 
-// Accepts a single message object: { text: string, sender: 'user' | 'assistant' | 'system' }
 const ChatMessage = ({ message }) => {
   const { text, sender, llm_model } = message;
 
+  // Determine if the assistant message is from an Anthropic model.
   const isAnthropic =
     sender === "assistant" && ANTHROPIC_MODELS.includes(llm_model);
+  // Compute CSS classes based on sender and model type.
   const messageClass = `chat-message ${
     sender === "user" ? "user-message" : "assistant-message"
   }${isAnthropic ? " anthropic-message" : ""}`;
 
-  // Don't render empty messages (e.g., placeholder before stream starts)
-  // Or render them differently if needed. Let's just skip empty ones for now.
-  //if (!text && sender === 'assistant') {
-  //    return null; // Or return a typing indicator?
-  //}
-
-  // You might not want to display system messages directly in the chat log
+  // Do not render system messages.
   if (sender === "system") {
-    return null; // Or display them differently, e.g., in a dedicated info box
+    return null;
   }
 
   return (
     <div className={messageClass}>
       <div className="message-content">
-        {/* Render message content using Markdown */}
         <ReactMarkdown>{text || "..."}</ReactMarkdown>{" "}
-        {/* Show ellipsis if text is empty */}
       </div>
     </div>
   );
