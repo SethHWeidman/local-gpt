@@ -17,7 +17,15 @@ from flask.wrappers import Response as flaskResponse
 import flask_cors
 import openai
 import anthropic
-import psycopg2.extensions, psycopg2.extras, psycopg2.pool
+import psycopg2.extensions, psycopg2.pool
+from tree_utils import (
+    get_conversation_path,
+    get_conversation_tree,
+    get_message_children,
+    get_next_branch_order,
+    messages_to_llm_format,
+    set_active_message,
+)
 
 ## Connection pool for PostgreSQL database.
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
@@ -75,29 +83,27 @@ def _anthropic_call(
 def stream_interaction() -> flaskResponse:
     """
     Stream an OpenAI or Anthropic LLM response via Server-Sent Events (SSE).
+    Now supports tree-based conversations with branching.
 
     Steps:
     1. Create or continue a conversation record in the database.
-    2. Save user and optional system messages.
-    3. Stream tokens from the chosen LLM to the client in real time.
-    4. Persist the final assistant message after streaming completes.
+    2. Save user message as a child of the specified parent message.
+    3. Get the conversation path for context.
+    4. Stream tokens from the chosen LLM to the client in real time.
+    5. Persist the final assistant message and update active message.
     """
     user_text = flask_request.args.get("userText", "")
     system_message = flask_request.args.get("systemMessage", "")
     conversation_id_str = flask_request.args.get("conversationId")
+    parent_message_id_str = flask_request.args.get("parentMessageId")
     llm_choice = flask_request.args.get("llm", "gpt-4.1-2025-04-14")
 
     conn = None
     cur = None
     conversation_id = None
+    parent_message_id = None
     is_new_conversation = True
     messages_for_llm = []
-
-    conversation_topic = _get_current_date_and_time_string()
-
-    conn = None
-    cur = None
-    conversation_id = None
 
     try:
         conn = get_db_connection()
@@ -109,22 +115,23 @@ def stream_interaction() -> flaskResponse:
                 is_new_conversation = False
                 print(f"Continuing conversation ID: {conversation_id}")
 
-                cur.execute(
-                    """
-                    SELECT sender_name, message_text
-                    FROM messages
-                    WHERE conversation_id = %s
-                    ORDER BY sent_at ASC
-                    """,
-                    (conversation_id,),
-                )
-                existing_messages = cur.fetchall()
+                # Get the conversation path for context
+                if parent_message_id_str:
+                    parent_message_id = int(parent_message_id_str)
+                    # Get path from root to parent message
+                    path_messages = get_conversation_path(
+                        cur, conversation_id, parent_message_id
+                    )
+                else:
+                    # Get current active path
+                    path_messages = get_conversation_path(cur, conversation_id)
 
-                for sender, text in existing_messages:
-                    if sender == "system" and system_message == "":
-                        system_message = text
-                    else:
-                        messages_for_llm.append({"role": sender, "content": text})
+                # Extract system message and convert to LLM format
+                for msg in path_messages:
+                    if msg['sender'] == "system" and system_message == "":
+                        system_message = msg['text']
+
+                messages_for_llm = messages_to_llm_format(path_messages, system_message)
 
             except (ValueError, TypeError):
                 print(
@@ -153,21 +160,35 @@ def stream_interaction() -> flaskResponse:
             if system_message:
                 cur.execute(
                     """
-                    INSERT INTO messages (conversation_id, message_text, sender_name)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO messages (conversation_id, message_text, sender_name, parent_message_id, branch_order)
+                    VALUES (%s, %s, %s, %s, %s) RETURNING id
                     """,
-                    (conversation_id, system_message, "system"),
+                    (conversation_id, system_message, "system", None, 0),
                 )
+                system_msg_result = cur.fetchone()
+                if system_msg_result:
+                    parent_message_id = system_msg_result[0]
 
-        messages_for_llm.append({"role": "user", "content": user_text})
+        # Get the next branch order for the new user message
+        branch_order = get_next_branch_order(cur, parent_message_id)
 
+        # Insert the user message
         cur.execute(
             """
-            INSERT INTO messages (conversation_id, message_text, sender_name)
-            VALUES (%s, %s, %s)
+            INSERT INTO messages (conversation_id, message_text, sender_name, parent_message_id, branch_order)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
             """,
-            (conversation_id, user_text, "user"),
+            (conversation_id, user_text, "user", parent_message_id, branch_order),
         )
+        user_message_result = cur.fetchone()
+        if not user_message_result:
+            raise Exception("Failed to insert user message")
+
+        user_message_id = user_message_result[0]
+        messages_for_llm.append({"role": "user", "content": user_text})
+
+        set_active_message(cur, conversation_id, user_message_id)
+
         conn.commit()
 
     except Exception as e:
@@ -180,7 +201,7 @@ def stream_interaction() -> flaskResponse:
         if cur:
             cur.close()
 
-    def generate(conv_id, chosen_llm):
+    def generate(conv_id, chosen_llm, user_msg_id):
         assistant_message_accumulator = []
         print(f"Starting generation for conversation ID: {conv_id}")
 
@@ -232,7 +253,7 @@ def stream_interaction() -> flaskResponse:
                             yield f"data: {data_str}\n\n"
 
         except Exception as e:
-            print(f"Error during streaming from OpenAI for conv {conv_id}: {e}")
+            print(f"Error during streaming from LLM for conv {conv_id}: {e}")
             error_data = json.dumps({"error": "Streaming failed"})
             yield f"data: {error_data}\n\n"
 
@@ -253,6 +274,10 @@ def stream_interaction() -> flaskResponse:
                     provider = (
                         "anthropic" if chosen_llm in ANTHROPIC_MODELS else "openai"
                     )
+
+                    # Get the next branch order for the assistant message
+                    assistant_branch_order = get_next_branch_order(cur2, user_msg_id)
+
                     cur2.execute(
                         """
                         INSERT INTO messages (
@@ -260,9 +285,11 @@ def stream_interaction() -> flaskResponse:
                             message_text, 
                             sender_name, 
                             llm_model, 
-                            llm_provider
+                            llm_provider,
+                            parent_message_id,
+                            branch_order
                         )
-                        VALUES (%s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
                         """,
                         (
                             conv_id,
@@ -270,14 +297,22 @@ def stream_interaction() -> flaskResponse:
                             "assistant",
                             chosen_llm,
                             provider,
+                            user_msg_id,
+                            assistant_branch_order,
                         ),
                     )
+                    assistant_msg_result = cur2.fetchone()
+                    if assistant_msg_result:
+                        assistant_msg_id = assistant_msg_result[0]
+                        # Set this as the active message for the conversation
+                        set_active_message(cur2, conv_id, assistant_msg_id)
+
                     conn2.commit()
                     print(f"Successfully saved final message for conv {conv_id}")
                 except Exception as e:
                     print(
                         "Error saving final assistant message to DB for conv "
-                        "{0}: {1}".format(conversation_id, e)
+                        "{0}: {1}".format(conv_id, e)
                     )
                     if conn2:
                         conn2.rollback()
@@ -295,7 +330,8 @@ def stream_interaction() -> flaskResponse:
                 )
 
     return flask.Response(
-        generate(conversation_id, llm_choice), mimetype="text/event-stream"
+        generate(conversation_id, llm_choice, user_message_id),
+        mimetype="text/event-stream",
     )
 
 
@@ -336,36 +372,24 @@ def get_messages(conversation_id: int) -> flaskResponse:
     """
     GET /api/messages/<conversation_id>
 
-    Return all messages for a given conversation in chronological order.
+    Return the active path of messages for a given conversation.
     """
     conn = None
     cur = None
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            """
-            SELECT id, message_text, sender_name, sent_at, llm_model, llm_provider
-            FROM messages
-            WHERE conversation_id = %s
-            ORDER BY sent_at ASC
-            """,
-            (conversation_id,),
-        )
-        messages_raw = cur.fetchall()
-        messages_processed = []
-        for msg in messages_raw:
-            messages_processed.append(
-                {
-                    'id': msg['id'],
-                    'text': msg['message_text'],
-                    'sender': msg['sender_name'],
-                    'sent_at': msg['sent_at'].isoformat(),
-                    'llm_model': msg['llm_model'],
-                    'llm_provider': msg['llm_provider'],
-                }
-            )
-        return flask.jsonify(messages_processed)
+        cur = conn.cursor()
+
+        # Optionally override active message via query param for UI navigation
+        active_id_param = flask_request.args.get('activeMessageId')
+        try:
+            active_id = int(active_id_param) if active_id_param is not None else None
+        except (ValueError, TypeError):
+            active_id = None
+        # Get the active path for this conversation (uses provided or stored active_message_id)
+        path_messages = get_conversation_path(cur, conversation_id, active_id)
+
+        return flask.jsonify(path_messages)
     except Exception as e:
         print("An error occurred retrieving messages:", e)
         return flask.jsonify({'error': 'Internal Server Error'}), 500
@@ -425,6 +449,108 @@ def delete_conversation(id: int) -> flaskResponse:
         print("Error deleting conversation:", e)
         if conn:
             conn.rollback()
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
+@FLASK_APP.route("/api/conversations/<int:conversation_id>/tree", methods=['GET'])
+def get_conversation_tree_endpoint(conversation_id: int) -> flaskResponse:
+    """
+    GET /api/conversations/<conversation_id>/tree
+
+    Return the complete tree structure for a conversation.
+    """
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        tree = get_conversation_tree(cur, conversation_id)
+
+        # Also get the active message ID
+        cur.execute(
+            "SELECT active_message_id FROM conversations WHERE id = %s",
+            (conversation_id,),
+        )
+        result = cur.fetchone()
+        active_message_id = result[0] if result else None
+
+        return flask.jsonify({'tree': tree, 'active_message_id': active_message_id})
+    except Exception as e:
+        print("An error occurred retrieving conversation tree:", e)
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
+@FLASK_APP.route(
+    "/api/conversations/<int:conversation_id>/active-message", methods=['PUT']
+)
+def set_active_message_endpoint(conversation_id: int) -> flaskResponse:
+    """
+    PUT /api/conversations/<conversation_id>/active-message
+
+    Set the active message for a conversation. Expects JSON body with 'message_id'.
+    """
+    data = flask_request.json
+    message_id = data.get('message_id')
+
+    if not message_id:
+        return flask.jsonify({'error': 'message_id is required'}), 400
+
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Verify the message belongs to this conversation
+        cur.execute(
+            "SELECT id FROM messages WHERE id = %s AND conversation_id = %s",
+            (message_id, conversation_id),
+        )
+        if not cur.fetchone():
+            return flask.jsonify({'error': 'Message not found in conversation'}), 404
+
+        set_active_message(cur, conversation_id, message_id)
+        conn.commit()
+
+        return flask.jsonify({'success': True})
+    except Exception as e:
+        print("An error occurred setting active message:", e)
+        if conn:
+            conn.rollback()
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
+@FLASK_APP.route("/api/messages/<int:message_id>/children", methods=['GET'])
+def get_message_children_endpoint(message_id: int) -> flaskResponse:
+    """
+    GET /api/messages/<message_id>/children
+
+    Get all direct children of a message.
+    """
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        children = get_message_children(cur, message_id)
+
+        return flask.jsonify(children)
+    except Exception as e:
+        print("An error occurred retrieving message children:", e)
         return flask.jsonify({'error': 'Internal Server Error'}), 500
     finally:
         if conn:
