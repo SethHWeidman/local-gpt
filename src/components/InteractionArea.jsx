@@ -15,8 +15,67 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     setCurrentUserInput,
     selectedLLM,
     setSelectedLLM,
+    selectedParentId,
+    setSelectedParentId,
   } = useConversation();
   const { messages } = currentConversation;
+  // Build message tree structure by parent_message_id
+  const messagesById = new Map(messages.map((m) => [m.id, m]));
+  const childrenMap = new Map();
+  messages.forEach((m) => {
+    const pid = m.parent_message_id;
+    if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+    childrenMap.get(pid).push(m);
+  });
+
+  // Compute ancestor path IDs (from selected node up to root)
+  const ancestorIds = new Set();
+  {
+    let curr = selectedParentId;
+    while (curr != null && messagesById.has(curr)) {
+      ancestorIds.add(curr);
+      curr = messagesById.get(curr).parent_message_id;
+    }
+  }
+
+  // Compute descendant IDs (all nodes under the selected node)
+  const descendantIds = new Set();
+  if (selectedParentId != null) {
+    const stack = [selectedParentId];
+    while (stack.length > 0) {
+      const id = stack.pop();
+      (childrenMap.get(id) || []).forEach((child) => {
+        if (child.id != null && !descendantIds.has(child.id)) {
+          descendantIds.add(child.id);
+          stack.push(child.id);
+        }
+      });
+    }
+  }
+
+  // Recursively render message nodes, expanding ancestor path and selected subtree
+  const renderNodes = (parentId = null, depth = 0) =>
+    (childrenMap.get(parentId) || []).map((msg) => {
+      const indent = depth * (msg.sender === "assistant" ? 20 : 10);
+      const isSelected = msg.id === selectedParentId;
+      const isAncestor = ancestorIds.has(msg.id);
+      const isDescendant = descendantIds.has(msg.id);
+      return (
+        <div
+          key={msg.id}
+          className={`message-node ${isSelected ? "selected-node" : ""}`}
+          style={{ marginLeft: indent }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedParentId(msg.id);
+          }}
+        >
+          <ChatMessage message={msg} />
+          {(isAncestor || isSelected || isDescendant) &&
+            renderNodes(msg.id, depth + 1)}
+        </div>
+      );
+    });
 
   const handleTextChange = (e) => {
     setCurrentUserInput(e.target.value);
@@ -39,12 +98,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       <div className="message-list">
         {/* Display messages or placeholder when no conversation is selected. */}
         {messages && messages.length > 0 ? (
-          messages.map((msg, index) => (
-            <ChatMessage
-              key={`${currentConversation.id}-${index}-${msg.sender}`}
-              message={msg}
-            />
-          ))
+          renderNodes()
         ) : (
           <div className="empty-chat-message">
             Select a conversation or start a new one.
