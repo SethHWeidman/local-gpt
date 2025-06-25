@@ -1,3 +1,4 @@
+/** @refresh reset */
 /**
  * ConversationContext.jsx
  *
@@ -32,6 +33,7 @@ export const ConversationProvider = ({ children }) => {
 
   const [currentUserInput, setCurrentUserInput] = useState("");
   const [selectedLLM, setSelectedLLM] = useState(OPENAI_MODELS[0]);
+  const [selectedParentId, setSelectedParentId] = useState(null);
 
   // Fetch the list of conversations from the backend.
   const fetchConversations = useCallback(async () => {
@@ -68,6 +70,7 @@ export const ConversationProvider = ({ children }) => {
         messages: displayMessages,
         systemMessage: systemMsg,
       });
+      setSelectedParentId(null);
       setCurrentUserInput("");
     } catch (error) {
       console.error(
@@ -92,6 +95,8 @@ export const ConversationProvider = ({ children }) => {
         loadConversationMessages,
         selectedLLM,
         setSelectedLLM,
+        selectedParentId,
+        setSelectedParentId,
       }}
     >
       {children}
