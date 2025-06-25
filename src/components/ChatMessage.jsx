@@ -43,7 +43,10 @@ const ChatMessage = ({ message }) => {
     if (contentRef.current) {
       const style = getComputedStyle(contentRef.current);
       const lineHeight = parseFloat(style.lineHeight);
-      if (contentRef.current.scrollHeight > lineHeight * COLLAPSE_THRESHOLD + 1) {
+      if (
+        contentRef.current.scrollHeight >
+        lineHeight * COLLAPSE_THRESHOLD + 1
+      ) {
         setShowToggle(true);
       }
     }
