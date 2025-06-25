@@ -10,8 +10,8 @@ import {
   ConversationProvider,
   useConversation,
 } from "./contexts/ConversationContext";
-import Modal from "./components/Modal";
 import ConversationPanel from "./components/ConversationPanel";
+import Modal from "./components/Modal";
 import ControlPanel from "./components/ControlPanel";
 import InteractionArea from "./components/InteractionArea";
 import api from "./api";
@@ -30,6 +30,8 @@ const AppContent = () => {
     fetchConversations,
     loadConversationMessages,
     selectedLLM,
+    selectedParentId,
+    setSelectedParentId,
   } = useConversation();
 
   const messagesEndRef = useRef(null);
@@ -73,14 +75,7 @@ const AppContent = () => {
       return;
     }
 
-    const newUserMessage = { text: textToSend, sender: "user" };
-    setCurrentConversation((prev) => ({
-      ...prev,
-      messages: [...prev.messages, newUserMessage],
-    }));
     setCurrentUserInput("");
-
-    setCurrentConversation((prev) => ({ ...prev, llmResponse: "" }));
     setIsModalVisible(true);
 
     if (eventSourceRef.current) {
@@ -98,6 +93,9 @@ const AppContent = () => {
       urlParams.append("conversationId", currentConversation.id);
     }
     urlParams.append("llm", selectedLLM);
+    if (selectedParentId != null) {
+      urlParams.append("parentMessageId", selectedParentId);
+    }
 
     const url = `${baseUrl}?${urlParams.toString()}`;
 
@@ -105,8 +103,10 @@ const AppContent = () => {
     eventSourceRef.current = es;
 
     let assistantMessageIndex = -1;
+    let pendingUserText = textToSend;
+    const branchParentId = selectedParentId;
+    let assistantParentId = null;
 
-    // Handle SSE events for streaming assistant responses.
     es.onmessage = (evt) => {
       console.log("Received SSE event:", evt.data);
       try {
@@ -130,39 +130,65 @@ const AppContent = () => {
           const newId = parsed.new_conversation_id;
           console.log("Received new conversation ID:", newId);
 
-          const currentSystemMessage = systemMessage;
-          const currentUserMessage = newUserMessage;
-
-          const messagesForNewConversation = [];
-          if (currentSystemMessage) {
-            messagesForNewConversation.push({
-              text: currentSystemMessage,
-              sender: "system",
-            });
-          }
-          messagesForNewConversation.push(currentUserMessage);
-
-          setCurrentConversation((prevConv) => ({
-            ...prevConv,
+          // assign new conversation ID and append a blank assistant stub
+          setCurrentConversation((prev) => ({
+            ...prev,
             id: newId,
-            messages: messagesForNewConversation,
-            systemMessage: currentSystemMessage,
-          }));
-
-          fetchConversations();
-
-          setCurrentConversation((prevConv) => ({
-            ...prevConv,
             messages: [
-              ...prevConv.messages,
+              ...prev.messages,
               { text: "", sender: "assistant", llm_model: selectedLLM },
             ],
           }));
 
-          assistantMessageIndex = messagesForNewConversation.length;
+          fetchConversations();
+          assistantMessageIndex = currentConversation.messages.length;
           return;
         }
-
+        if (parsed.user_message_id !== undefined) {
+          const newUserMsgId = parsed.user_message_id;
+          assistantParentId = newUserMsgId;
+          setCurrentConversation((prev) => {
+            const base = prev.messages;
+            const userMsg = {
+              id: newUserMsgId,
+              text: pendingUserText,
+              sender: "user",
+              parent_message_id: branchParentId,
+            };
+            const stubMsg = {
+              text: "",
+              sender: "assistant",
+              llm_model: selectedLLM,
+              parent_message_id: newUserMsgId,
+            };
+            assistantMessageIndex = base.length + 1;
+            return {
+              ...prev,
+              messages: [...base, userMsg, stubMsg],
+            };
+          });
+          setSelectedParentId(newUserMsgId);
+          return;
+        }
+        // Assign an ID to the final assistant stub for correct branching
+        if (parsed.assistant_message_id !== undefined) {
+          const newAssistId = parsed.assistant_message_id;
+          setCurrentConversation((prev) => {
+            const newMessages = [...prev.messages];
+            if (
+              assistantMessageIndex !== -1 &&
+              newMessages[assistantMessageIndex]
+            ) {
+              newMessages[assistantMessageIndex] = {
+                ...newMessages[assistantMessageIndex],
+                id: newAssistId,
+              };
+            }
+            return { ...prev, messages: newMessages };
+          });
+          setSelectedParentId(newAssistId);
+          return;
+        }
         if (parsed.token !== undefined) {
           const token = parsed.token;
 
@@ -173,6 +199,7 @@ const AppContent = () => {
                 text: token,
                 sender: "assistant",
                 llm_model: selectedLLM,
+                parent_message_id: assistantParentId,
               });
               assistantMessageIndex = newMessages.length - 1;
             } else {
