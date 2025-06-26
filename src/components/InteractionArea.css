@@ -86,3 +86,10 @@
 .submit-button:hover:not(:disabled) {
   background-color: #8c8c8c;
 }
+
+ .message-node {
+  cursor: pointer;
+}
+.message-node.selected-node > .chat-message {
+  border: 2px solid #007bff;
+}

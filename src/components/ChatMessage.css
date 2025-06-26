@@ -1,5 +1,6 @@
 .chat-message {
     position: relative;
+    display: inline-block;
     max-width: 70%;
     padding: 10px 15px;
     margin-bottom: 10px;
@@ -15,17 +16,17 @@
   .user-message {
     background-color: #78909C;
     color: white;
-    margin-left: auto;
-    margin-right: 10px;
-    border-bottom-right-radius: 5px;
+    margin-right: auto;
+    margin-left: 10px;
+    border-bottom-left-radius: 5px;
   }
 
   .assistant-message {
     background-color: #D1D5DB;
     color: #333;
-    margin-right: auto;
-    margin-left: 10px;
-    border-bottom-left-radius: 5px;
+    margin-left: auto;
+    margin-right: 10px;
+    border-bottom-right-radius: 5px;
   }
 
 .assistant-message.anthropic-message {
@@ -63,4 +64,20 @@
 
 .assistant-message.anthropic-message .model-badge {
     background-color: #FFE2BA;
+}
+.collapse-icon {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  opacity: 0;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  padding: 2px;
+  transition: opacity 0.2s ease-in-out;
+}
+.chat-message:hover .collapse-icon {
+  opacity: 1;
 }

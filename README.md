@@ -39,11 +39,3 @@ and automatically loaded by both the front-end (`src/constants.js`) and the back
 ## Start
 
 `./start-local-gpt.sh`
-
-## Still to build
-
-1. Delete mode fixes:
-    1. Move toggle to the top right of ConversationPanel
-2. Make the ConversationPanel a scrollable element
-3. ConversationPanel UI fixes:
-    1. Highlight each element on hover

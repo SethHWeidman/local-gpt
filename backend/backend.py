@@ -86,12 +86,20 @@ def stream_interaction() -> flaskResponse:
     system_message = flask_request.args.get("systemMessage", "")
     conversation_id_str = flask_request.args.get("conversationId")
     llm_choice = flask_request.args.get("llm", "gpt-4.1-2025-04-14")
+    parent_message_id_str = flask_request.args.get("parentMessageId")
+    try:
+        parent_message_id = (
+            int(parent_message_id_str) if parent_message_id_str is not None else None
+        )
+    except (ValueError, TypeError):
+        parent_message_id = None
 
     conn = None
     cur = None
     conversation_id = None
     is_new_conversation = True
     messages_for_llm = []
+    user_message_id = None
 
     conversation_topic = _get_current_date_and_time_string()
 
@@ -111,7 +119,7 @@ def stream_interaction() -> flaskResponse:
 
                 cur.execute(
                     """
-                    SELECT sender_name, message_text
+                    SELECT id, parent_message_id, sender_name, message_text, sent_at
                     FROM messages
                     WHERE conversation_id = %s
                     ORDER BY sent_at ASC
@@ -120,7 +128,23 @@ def stream_interaction() -> flaskResponse:
                 )
                 existing_messages = cur.fetchall()
 
-                for sender, text in existing_messages:
+                if parent_message_id is not None:
+                    # Filter to only include the selected branch path and system messages
+                    id_map = {m[0]: m for m in existing_messages}
+                    path_ids = set()
+                    curr = parent_message_id
+                    while curr is not None and curr in id_map:
+                        path_ids.add(curr)
+                        curr = id_map[curr][1]
+                    existing_messages = [
+                        m
+                        for m in existing_messages
+                        if m[0] in path_ids or m[2] == "system"
+                    ]
+
+                for m in existing_messages:
+                    sender = m[2]
+                    text = m[3]
                     if sender == "system" and system_message == "":
                         system_message = text
                     else:
@@ -163,11 +187,14 @@ def stream_interaction() -> flaskResponse:
 
         cur.execute(
             """
-            INSERT INTO messages (conversation_id, message_text, sender_name)
-            VALUES (%s, %s, %s)
+            INSERT INTO messages 
+                (conversation_id, message_text, sender_name, parent_message_id)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
             """,
-            (conversation_id, user_text, "user"),
+            (conversation_id, user_text, "user", parent_message_id),
         )
+        user_message_id = cur.fetchone()[0]
         conn.commit()
 
     except Exception as e:
@@ -187,6 +214,11 @@ def stream_interaction() -> flaskResponse:
         if is_new_conversation:
             new_convo_data = json.dumps({"new_conversation_id": conv_id})
             yield f"data: {new_convo_data}\n\n"
+
+        # Inform client of the user message ID for branching
+        if user_message_id is not None:
+            user_msg_data = json.dumps({"user_message_id": user_message_id})
+            yield f"data: {user_msg_data}\n\n"
 
         model_to_use = chosen_llm
 
@@ -256,13 +288,15 @@ def stream_interaction() -> flaskResponse:
                     cur2.execute(
                         """
                         INSERT INTO messages (
-                            conversation_id, 
-                            message_text, 
-                            sender_name, 
-                            llm_model, 
-                            llm_provider
+                            conversation_id,
+                            message_text,
+                            sender_name,
+                            llm_model,
+                            llm_provider,
+                            parent_message_id
                         )
-                        VALUES (%s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        RETURNING id
                         """,
                         (
                             conv_id,
@@ -270,9 +304,18 @@ def stream_interaction() -> flaskResponse:
                             "assistant",
                             chosen_llm,
                             provider,
+                            user_message_id,
                         ),
                     )
+                    assistant_msg_row = cur2.fetchone()
                     conn2.commit()
+                    if assistant_msg_row:
+                        assistant_msg_id = assistant_msg_row[0]
+                        # Inform client of the assistant message ID for branching
+                        assistant_id_data = json.dumps(
+                            {"assistant_message_id": assistant_msg_id}
+                        )
+                        yield f"data: {assistant_id_data}\n\n"
                     print(f"Successfully saved final message for conv {conv_id}")
                 except Exception as e:
                     print(
@@ -290,8 +333,7 @@ def stream_interaction() -> flaskResponse:
                 print("Skipping final save: conversation_id is None.")
             else:
                 print(
-                    f"Skipping final save for conv {conv_id}: No assistant text "
-                    "generated."
+                    f"Skipping final save for conv {conv_id}: No assistant text generated."
                 )
 
     return flask.Response(
@@ -345,7 +387,14 @@ def get_messages(conversation_id: int) -> flaskResponse:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
             """
-            SELECT id, message_text, sender_name, sent_at, llm_model, llm_provider
+            SELECT 
+                id, 
+                message_text, 
+                sender_name, 
+                sent_at, 
+                llm_model, 
+                llm_provider, 
+                parent_message_id
             FROM messages
             WHERE conversation_id = %s
             ORDER BY sent_at ASC
@@ -363,6 +412,7 @@ def get_messages(conversation_id: int) -> flaskResponse:
                     'sent_at': msg['sent_at'].isoformat(),
                     'llm_model': msg['llm_model'],
                     'llm_provider': msg['llm_provider'],
+                    'parent_message_id': msg.get('parent_message_id'),
                 }
             )
         return flask.jsonify(messages_processed)
