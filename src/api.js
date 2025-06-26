@@ -9,42 +9,8 @@ const api = {
     return response.json();
   },
 
-  /**
-   * Fetch the active path of messages for a conversation,
-   * optionally overriding the active message via query param.
-   */
-  async fetchMessages(conversationId, activeMessageId) {
-    let url = `${API_ENDPOINTS.MESSAGES}/${conversationId}`;
-    if (activeMessageId != null) {
-      url += `?activeMessageId=${activeMessageId}`;
-    }
-    const response = await fetch(url);
-    return response.json();
-  },
-
-  async fetchConversationTree(conversationId) {
-    const response = await fetch(
-      `${API_ENDPOINTS.CONVERSATIONS}/${conversationId}/tree`
-    );
-    return response.json();
-  },
-
-  async setActiveMessage(conversationId, messageId) {
-    const response = await fetch(
-      `${API_ENDPOINTS.CONVERSATIONS}/${conversationId}/active-message`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message_id: messageId }),
-      }
-    );
-    return response.json();
-  },
-
-  async fetchMessageChildren(messageId) {
-    const response = await fetch(
-      `${API_ENDPOINTS.MESSAGES}/${messageId}/children`
-    );
+  async fetchMessages(conversationId) {
+    const response = await fetch(`${API_ENDPOINTS.MESSAGES}/${conversationId}`);
     return response.json();
   },
 

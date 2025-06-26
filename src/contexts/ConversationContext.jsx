@@ -28,16 +28,10 @@ export const ConversationProvider = ({ children }) => {
     id: null,
     messages: [],
     systemMessage: "",
-    tree: null,
-    // activeMessageId: current leaf shown in UI (override or server),
-    activeMessageId: null,
-    // serverActiveMessageId: DB active_message_id for reset purposes
-    serverActiveMessageId: null,
   });
 
   const [currentUserInput, setCurrentUserInput] = useState("");
   const [selectedLLM, setSelectedLLM] = useState(OPENAI_MODELS[0]);
-  const [selectedParentMessageId, setSelectedParentMessageId] = useState(null);
 
   // Fetch the list of conversations from the backend.
   const fetchConversations = useCallback(async () => {
@@ -54,81 +48,36 @@ export const ConversationProvider = ({ children }) => {
     fetchConversations();
   }, [fetchConversations]);
 
-  /**
-   * Load messages (active path) and tree for a conversation.
-   * @param conversationId ID of the conversation
-   * @param overrideActiveMessageId optional override for active message navigation
-   */
-  const loadConversationMessages = useCallback(
-    async (conversationId, overrideActiveMessageId = null) => {
-      if (!conversationId) {
-        setCurrentConversation({
-          id: null,
-          messages: [],
-          systemMessage: "",
-          tree: null,
-          activeMessageId: null,
-          serverActiveMessageId: null,
-        });
-        setCurrentUserInput("");
-        setSelectedParentMessageId(null);
-        return;
-      }
-      try {
-        // Fetch both the active path and the full tree
-        const [fetchedMessages, treeData] = await Promise.all([
-          api.fetchMessages(conversationId, overrideActiveMessageId),
-          api.fetchConversationTree(conversationId),
-        ]);
+  // Load messages for a given conversation or reset state if none is selected.
+  const loadConversationMessages = useCallback(async (conversationId) => {
+    if (!conversationId) {
+      setCurrentConversation({ id: null, messages: [], systemMessage: "" });
+      setCurrentUserInput("");
+      return;
+    }
+    try {
+      const fetchedMessages = await api.fetchMessages(conversationId);
+      const systemMsg =
+        fetchedMessages.find((msg) => msg.sender === "system")?.text || "";
+      const displayMessages = fetchedMessages.filter(
+        (msg) => msg.sender !== "system"
+      );
 
-        const systemMsg =
-          fetchedMessages.find((msg) => msg.sender === "system")?.text || "";
-        const displayMessages = fetchedMessages.filter(
-          (msg) => msg.sender !== "system"
-        );
-
-        setCurrentConversation({
-          id: conversationId,
-          messages: displayMessages,
-          systemMessage: systemMsg,
-          tree: treeData.tree,
-          // Use override if provided, else the server's active message
-          activeMessageId:
-            overrideActiveMessageId != null
-              ? overrideActiveMessageId
-              : treeData.active_message_id,
-          serverActiveMessageId: treeData.active_message_id,
-        });
-        setCurrentUserInput("");
-        setSelectedParentMessageId(null);
-      } catch (error) {
-        console.error(
-          `Error fetching messages for conversation ${conversationId}:`,
-          error
-        );
-        setCurrentConversation({
-          id: null,
-          messages: [],
-          systemMessage: "",
-          tree: null,
-          activeMessageId: null,
-          serverActiveMessageId: null,
-        });
-        setCurrentUserInput("");
-        setSelectedParentMessageId(null);
-      }
-    },
-    []
-  );
-
-  // Navigate to a different branch in the conversation tree (UI only)
-  const switchToBranch = useCallback(
-    (messageId) => {
-      if (!currentConversation.id) return;
-      loadConversationMessages(currentConversation.id, messageId);
-    },
-    [currentConversation.id, loadConversationMessages]
-  );
+      setCurrentConversation({
+        id: conversationId,
+        messages: displayMessages,
+        systemMessage: systemMsg,
+      });
+      setCurrentUserInput("");
+    } catch (error) {
+      console.error(
+        `Error fetching messages for conversation ${conversationId}:`,
+        error
+      );
+      setCurrentConversation({ id: null, messages: [], systemMessage: "" });
+      setCurrentUserInput("");
+    }
+  }, []);
 
   return (
     <ConversationContext.Provider
@@ -143,9 +92,6 @@ export const ConversationProvider = ({ children }) => {
         loadConversationMessages,
         selectedLLM,
         setSelectedLLM,
-        selectedParentMessageId,
-        setSelectedParentMessageId,
-        switchToBranch,
       }}
     >
       {children}

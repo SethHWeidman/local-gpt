@@ -4,5 +4,3 @@ package-lock.json
 
 # Vite build output
 dist/
-
-*__pycache__

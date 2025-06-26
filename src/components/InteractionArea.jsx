@@ -4,7 +4,6 @@
  * Renders the message list, model selector, and input box for user interactions.
  */
 import ChatMessage from "./ChatMessage";
-import TreeView from "./TreeView";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
 import "./InteractionArea.css";
@@ -37,11 +36,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
 
   return (
     <div className="current-llm-interaction">
-      {/* Show tree view if conversation has a tree structure */}
-      {currentConversation.tree && currentConversation.tree.length > 0 && (
-        <TreeView />
-      )}
-
       <div className="message-list">
         {/* Display messages or placeholder when no conversation is selected. */}
         {messages && messages.length > 0 ? (
@@ -49,7 +43,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             <ChatMessage
               key={`${currentConversation.id}-${index}-${msg.sender}`}
               message={msg}
-              showBranchButton={true}
             />
           ))
         ) : (

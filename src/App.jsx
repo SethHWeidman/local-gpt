@@ -30,9 +30,6 @@ const AppContent = () => {
     fetchConversations,
     loadConversationMessages,
     selectedLLM,
-    selectedParentMessageId,
-    setSelectedParentMessageId,
-    switchToBranch,
   } = useConversation();
 
   const messagesEndRef = useRef(null);
@@ -56,11 +53,9 @@ const AppContent = () => {
       await fetchConversations();
       if (currentConversation?.id === id) {
         setCurrentConversation({
-          id: null,
-          messages: [],
           systemMessage: "",
-          tree: null,
-          activeMessageId: null,
+          userText: "",
+          llmResponse: "",
         });
       }
     } catch (error) {
@@ -101,9 +96,6 @@ const AppContent = () => {
 
     if (currentConversation.id) {
       urlParams.append("conversationId", currentConversation.id);
-      if (selectedParentMessageId) {
-        urlParams.append("parentMessageId", selectedParentMessageId);
-      }
     }
     urlParams.append("llm", selectedLLM);
 
@@ -205,17 +197,11 @@ const AppContent = () => {
       }
     };
 
-    const handleClose = async (isError = false) => {
+    const handleClose = (isError = false) => {
       es.close();
       eventSourceRef.current = null;
       setIsModalVisible(false);
       console.log(`SSE connection closed${isError ? " due to error" : ""}.`);
-
-      // Reload the conversation to get the updated tree structure
-      if (!isError && currentConversation.id) {
-        await loadConversationMessages(currentConversation.id);
-        setSelectedParentMessageId(null); // Reset parent selection
-      }
     };
 
     // Close SSE connection on error and display a system message.
