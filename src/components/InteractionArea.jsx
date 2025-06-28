@@ -19,6 +19,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     setSelectedParentId,
   } = useConversation();
   const { messages } = currentConversation;
+
   // Build message tree structure by parent_message_id
   const messagesById = new Map(messages.map((m) => [m.id, m]));
   const childrenMap = new Map();
@@ -53,7 +54,8 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     }
   }
 
-  // Recursively render message nodes, expanding ancestor path and selected subtree
+  // Recursively render message nodes; show full tree when no branch selected, otherwise
+  // expand ancestor path and selected subtree
   const renderNodes = (parentId = null, depth = 0) =>
     (childrenMap.get(parentId) || []).map((msg) => {
       const indent = depth * (msg.sender === "assistant" ? 20 : 10);
@@ -71,7 +73,10 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           }}
         >
           <ChatMessage message={msg} />
-          {(isAncestor || isSelected || isDescendant) &&
+          {(selectedParentId == null ||
+            isAncestor ||
+            isSelected ||
+            isDescendant) &&
             renderNodes(msg.id, depth + 1)}
         </div>
       );
