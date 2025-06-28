@@ -12,9 +12,9 @@ import { ANTHROPIC_MODELS } from "../constants";
 const ChatMessage = ({ message }) => {
   const { text = "", sender, llm_model } = message;
   const lines = text.split(/\r?\n/);
-  // Only collapse assistant messages longer than threshold lines
+  // Collapse messages exceeding the line threshold by default
   const COLLAPSE_THRESHOLD = 4;
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   // Determine if message content exceeds threshold when rendered (overflow)
   const contentRef = useRef(null);
   const [showToggle, setShowToggle] = useState(false);

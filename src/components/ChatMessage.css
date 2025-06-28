@@ -1,6 +1,7 @@
 .chat-message {
     position: relative;
     display: inline-block;
+    vertical-align: top;
     max-width: 70%;
     padding: 10px 15px;
     margin-bottom: 10px;
