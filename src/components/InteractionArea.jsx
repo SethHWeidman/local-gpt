@@ -53,16 +53,15 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       });
     }
   }
-
-  // Recursively render message nodes; show full tree when no branch selected, otherwise
-  // expand ancestor path and selected subtree
-  const renderNodes = (parentId = null, depth = 0) =>
-    (childrenMap.get(parentId) || []).map((msg) => {
-      const indent = depth * (msg.sender === "assistant" ? 20 : 10);
+  const INDENT_PER_LEVEL = 20;
+  const renderNodes = (parentId = null, depth = 0) => {
+    const nodes = [];
+    (childrenMap.get(parentId) || []).forEach((msg) => {
+      const indent = depth * INDENT_PER_LEVEL;
       const isSelected = msg.id === selectedParentId;
       const isAncestor = ancestorIds.has(msg.id);
       const isDescendant = descendantIds.has(msg.id);
-      return (
+      nodes.push(
         <div
           key={msg.id}
           className={`message-node ${isSelected ? "selected-node" : ""}`}
@@ -73,14 +72,19 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           }}
         >
           <ChatMessage message={msg} />
-          {(selectedParentId == null ||
-            isAncestor ||
-            isSelected ||
-            isDescendant) &&
-            renderNodes(msg.id, depth + 1)}
         </div>
       );
+      if (
+        selectedParentId == null ||
+        isAncestor ||
+        isSelected ||
+        isDescendant
+      ) {
+        nodes.push(...renderNodes(msg.id, depth + 1));
+      }
     });
+    return nodes;
+  };
 
   const handleTextChange = (e) => {
     setCurrentUserInput(e.target.value);

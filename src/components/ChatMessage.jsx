@@ -40,16 +40,17 @@ const ChatMessage = ({ message }) => {
     ? lines.slice(0, COLLAPSE_THRESHOLD).join("\n")
     : text;
   useEffect(() => {
+    let shouldShow = false;
     if (contentRef.current) {
-      const style = getComputedStyle(contentRef.current);
-      const lineHeight = parseFloat(style.lineHeight);
-      if (
-        contentRef.current.scrollHeight >
-        lineHeight * COLLAPSE_THRESHOLD + 1
-      ) {
-        setShowToggle(true);
+      const { scrollHeight, clientHeight } = contentRef.current;
+      if (scrollHeight > clientHeight) {
+        shouldShow = true;
       }
     }
+    if (lines.length > COLLAPSE_THRESHOLD) {
+      shouldShow = true;
+    }
+    setShowToggle(shouldShow);
   }, [text]);
   return (
     <div className={messageClass}>
