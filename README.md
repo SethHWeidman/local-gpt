@@ -1,23 +1,6 @@
 # Local GPT
 
-Local GPT is a way to access ChatGPT and other LLMs for a much lower cost than accessing
-them via their web UIs.
-
-**Features:**
-
-* Engage in a conversation with ChatGPT and Claude
-* Modify the system message to change the model behavior
-* Access your prior interactions via a sidebar
-
-## Model Configuration
-
-The set of supported models and model categories is centralized in `shared/models.json`
-and automatically loaded by both the front-end (`src/constants.js`) and the back-end
-(`backend/backend.py`) to prevent divergence. It contains the following keys:
-
-- `anthropic_models`: list of Anthropic (Claude) models
-- `openai_models`: list of OpenAI models
-- `reasoning_models`: subset of models treated as reasoning-only (no temperature)
+Demo coming soon :)
 
 ## Setup
 
