@@ -59,8 +59,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     (childrenMap.get(parentId) || []).forEach((msg) => {
       const indent = depth * INDENT_PER_LEVEL;
       const isSelected = msg.id === selectedParentId;
-      const isAncestor = ancestorIds.has(msg.id);
-      const isDescendant = descendantIds.has(msg.id);
       nodes.push(
         <div
           key={msg.id}
@@ -74,14 +72,8 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           <ChatMessage message={msg} />
         </div>
       );
-      if (
-        selectedParentId == null ||
-        isAncestor ||
-        isSelected ||
-        isDescendant
-      ) {
-        nodes.push(...renderNodes(msg.id, depth + 1));
-      }
+      // Always render all branches, not only the selected path
+      nodes.push(...renderNodes(msg.id, depth + 1));
     });
     return nodes;
   };
