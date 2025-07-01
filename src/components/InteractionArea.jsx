@@ -59,10 +59,13 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     (childrenMap.get(parentId) || []).forEach((msg) => {
       const indent = depth * INDENT_PER_LEVEL;
       const isSelected = msg.id === selectedParentId;
+      const isAncestor = ancestorIds.has(msg.id);
       nodes.push(
         <div
           key={msg.id}
-          className={`message-node ${isSelected ? "selected-node" : ""}`}
+          className={`message-node ${isSelected ? "selected-node" : ""} ${
+            isAncestor ? "ancestor-node" : ""
+          }`}
           style={{ "--indent": `${indent}px` }}
           onClick={(e) => {
             e.stopPropagation();
