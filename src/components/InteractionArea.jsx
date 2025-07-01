@@ -65,7 +65,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
         <div
           key={msg.id}
           className={`message-node ${isSelected ? "selected-node" : ""}`}
-          style={{ marginLeft: indent }}
+          style={{ "--indent": `${indent}px` }}
           onClick={(e) => {
             e.stopPropagation();
             setSelectedParentId(msg.id);

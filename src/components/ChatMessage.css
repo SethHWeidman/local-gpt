@@ -17,12 +17,16 @@
     color: white;
     margin: 0;
     border-bottom-left-radius: 5px;
+    max-width: none;
+    width: auto;
   }
 
   .assistant-message {
     background-color: #D1D5DB;
     color: #333;
     margin: 0;
+    max-width: none;
+    width: auto;
     border-bottom-right-radius: 5px;
   }
 
