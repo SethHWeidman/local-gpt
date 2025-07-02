@@ -58,10 +58,11 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     }
   }
   const INDENT_PER_LEVEL = 20;
-  const renderNodes = (parentId = null, depth = 0) => {
+  const renderNodes = (parentId = null, indent = 0) => {
     const nodes = [];
     (childrenMap.get(parentId) || []).forEach((msg) => {
-      const indent = depth * INDENT_PER_LEVEL;
+      const nextIndent =
+        msg.sender === "assistant" ? indent + INDENT_PER_LEVEL : indent;
       const isSelected = msg.id === selectedParentId;
       const isAncestor = ancestorIds.has(msg.id);
       nodes.push(
@@ -79,8 +80,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           <ChatMessage message={msg} />
         </div>
       );
-      // Always render all branches, not only the selected path
-      nodes.push(...renderNodes(msg.id, depth + 1));
+      nodes.push(...renderNodes(msg.id, nextIndent));
     });
     return nodes;
   };
