@@ -28,6 +28,10 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     if (!childrenMap.has(pid)) childrenMap.set(pid, []);
     childrenMap.get(pid).push(m);
   });
+  // Determine if the selected node is a user message to disable branching
+  const selectedMsg =
+    selectedParentId != null ? messagesById.get(selectedParentId) : null;
+  const isUserSelected = selectedMsg?.sender === "user";
 
   // Compute ancestor path IDs (from selected node up to root)
   const ancestorIds = new Set();
@@ -117,7 +121,12 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           value={currentUserInput}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message here..."
+          placeholder={
+            isUserSelected
+              ? "Cannot branch from a user message"
+              : "Type your message here..."
+          }
+          disabled={isUserSelected}
         ></textarea>
         <div className="controls-container">
           {" "}
@@ -146,7 +155,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           <button
             className="submit-button"
             onClick={onSubmit}
-            disabled={!currentUserInput.trim()}
+            disabled={!currentUserInput.trim() || isUserSelected}
           >
             Send
           </button>
