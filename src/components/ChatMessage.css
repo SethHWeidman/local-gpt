@@ -6,74 +6,77 @@
   border-radius: 15px;
   word-wrap: break-word;
   line-height: 1.4;
-  }
+}
 
-  .chat-message p {
-    margin: 0;
-  }
+.chat-message p {
+  margin: 0;
+}
 
-  .user-message {
-    background-color: #78909C;
-    color: white;
-    margin: 0;
-    border-bottom-left-radius: 5px;
-    max-width: none;
-    width: auto;
-  }
+.user-message {
+  background-color: #78909C;
+  color: white;
+  margin: 0;
+  border-bottom-left-radius: 5px;
+  max-width: none;
+  width: auto;
+}
 
-  .assistant-message {
-    background-color: #D1D5DB;
-    color: #333;
-    margin: 0;
-    max-width: none;
-    width: auto;
-    border-bottom-right-radius: 5px;
-  }
+.assistant-message {
+  background-color: #D1D5DB;
+  color: #333;
+  margin: 0;
+  max-width: none;
+  width: auto;
+  border-bottom-right-radius: 5px;
+}
 
 .assistant-message.anthropic-message {
-    background-color: #FFD6AE;
+  background-color: #FFD6AE;
 }
-  .message-content p {
-    margin-bottom: 0;
-  }
-  .message-content code {
-    background-color: rgba(0,0,0,0.1);
-    padding: 2px 4px;
-    border-radius: 4px;
-  }
-  .message-content pre {
-    background-color: rgba(0,0,0,0.1);
-    padding: 10px;
-    border-radius: 4px;
-    overflow-x: auto;
-  }
+
+.message-content p {
+  margin-bottom: 0;
+}
+
+.message-content code {
+  background-color: rgba(0,0,0,0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.message-content pre {
+  background-color: rgba(0,0,0,0.1);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
 
 .chat-message .model-badge {
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    background-color: rgba(0, 0, 0, 0.75);
-    color: #333;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    border-radius: 8px;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 10;
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #333;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
 }
 
 .chat-message:hover .model-badge {
-    opacity: 1;
+  opacity: 1;
 }
 
 .assistant-message .model-badge {
-    background-color: #E2E6EB;
+  background-color: #E2E6EB;
 }
 
 .assistant-message.anthropic-message .model-badge {
-    background-color: #FFE2BA;
+  background-color: #FFE2BA;
 }
 
 .collapse-icon {
@@ -89,6 +92,7 @@
   padding: 2px;
   transition: opacity 0.2s ease-in-out;
 }
+
 .chat-message:hover .collapse-icon {
   opacity: 1;
 }
@@ -107,6 +111,7 @@
   padding: 2px;
   transition: opacity 0.2s ease-in-out;
 }
+
 .chat-message:hover .children-toggle-icon {
   opacity: 1;
 }
