@@ -9,7 +9,12 @@ import ReactMarkdown from "react-markdown";
 import "./ChatMessage.css";
 import { ANTHROPIC_MODELS } from "../constants";
 
-const ChatMessage = ({ message }) => {
+const ChatMessage = ({
+  message,
+  hasChildren = false,
+  collapsedChildren = false,
+  onToggleChildren = () => {},
+}) => {
   const { text = "", sender, llm_model } = message;
   const lines = text.split(/\r?\n/);
   // Collapse messages exceeding the line threshold by default
@@ -35,6 +40,10 @@ const ChatMessage = ({ message }) => {
   const handleToggleClick = (e) => {
     e.stopPropagation();
     setCollapsed((prev) => !prev);
+  };
+  const handleChildrenToggle = (e) => {
+    e.stopPropagation();
+    onToggleChildren();
   };
   const displayText = collapsed
     ? lines.slice(0, COLLAPSE_THRESHOLD).join("\n")
@@ -76,6 +85,11 @@ const ChatMessage = ({ message }) => {
       {showToggle && (
         <div className="collapse-icon" onClick={handleToggleClick}>
           {collapsed ? "↓" : "↑"}
+        </div>
+      )}
+      {hasChildren && (
+        <div className="children-toggle-icon" onClick={handleChildrenToggle}>
+          {collapsedChildren ? "+" : "-"}
         </div>
       )}
     </div>

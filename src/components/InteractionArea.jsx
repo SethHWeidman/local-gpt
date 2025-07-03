@@ -3,6 +3,7 @@
  *
  * Renders the message list, model selector, and input box for user interactions.
  */
+import React, { useState } from "react";
 import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
@@ -19,6 +20,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     setSelectedParentId,
   } = useConversation();
   const { messages } = currentConversation;
+  const [collapsedNodes, setCollapsedNodes] = useState(new Set());
 
   // Build message tree structure by parent_message_id
   const messagesById = new Map(messages.map((m) => [m.id, m]));
@@ -65,6 +67,8 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
         msg.sender === "assistant" ? indent + INDENT_PER_LEVEL : indent;
       const isSelected = msg.id === selectedParentId;
       const isAncestor = ancestorIds.has(msg.id);
+      const hasChildren = (childrenMap.get(msg.id) || []).length > 0;
+      const isCollapsed = collapsedNodes.has(msg.id);
       nodes.push(
         <div
           key={msg.id}
@@ -77,10 +81,24 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             setSelectedParentId(msg.id);
           }}
         >
-          <ChatMessage message={msg} />
+          <ChatMessage
+            message={msg}
+            hasChildren={hasChildren}
+            collapsedChildren={isCollapsed}
+            onToggleChildren={() => {
+              setCollapsedNodes((prev) => {
+                const next = new Set(prev);
+                if (next.has(msg.id)) next.delete(msg.id);
+                else next.add(msg.id);
+                return next;
+              });
+            }}
+          />
         </div>
       );
-      nodes.push(...renderNodes(msg.id, nextIndent));
+      if (!isCollapsed) {
+        nodes.push(...renderNodes(msg.id, nextIndent));
+      }
     });
     return nodes;
   };

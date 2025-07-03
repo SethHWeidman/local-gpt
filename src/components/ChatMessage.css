@@ -75,6 +75,7 @@
 .assistant-message.anthropic-message .model-badge {
     background-color: #FFE2BA;
 }
+
 .collapse-icon {
   position: absolute;
   bottom: 4px;
@@ -89,5 +90,23 @@
   transition: opacity 0.2s ease-in-out;
 }
 .chat-message:hover .collapse-icon {
+  opacity: 1;
+}
+
+/* Toggle visibility of child messages */
+.children-toggle-icon {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  opacity: 0;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  padding: 2px;
+  transition: opacity 0.2s ease-in-out;
+}
+.chat-message:hover .children-toggle-icon {
   opacity: 1;
 }
