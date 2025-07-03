@@ -93,7 +93,7 @@ const AppContent = () => {
       urlParams.append("conversationId", currentConversation.id);
     }
     urlParams.append("llm", selectedLLM);
-    if (selectedParentId != null) {
+    if (currentConversation.id != null && selectedParentId != null) {
       urlParams.append("parentMessageId", selectedParentId);
     }
 
@@ -104,7 +104,8 @@ const AppContent = () => {
 
     let assistantMessageIndex = -1;
     let pendingUserText = textToSend;
-    const branchParentId = selectedParentId;
+    const branchParentId =
+      currentConversation.id != null ? selectedParentId : null;
     let assistantParentId = null;
 
     es.onmessage = (evt) => {
@@ -130,18 +131,14 @@ const AppContent = () => {
           const newId = parsed.new_conversation_id;
           console.log("Received new conversation ID:", newId);
 
-          // assign new conversation ID and append a blank assistant stub
           setCurrentConversation((prev) => ({
             ...prev,
             id: newId,
-            messages: [
-              ...prev.messages,
-              { text: "", sender: "assistant", llm_model: selectedLLM },
-            ],
+            messages: [],
           }));
+          setSelectedParentId(null);
 
           fetchConversations();
-          assistantMessageIndex = currentConversation.messages.length;
           return;
         }
         if (parsed.user_message_id !== undefined) {
@@ -156,6 +153,9 @@ const AppContent = () => {
               parent_message_id: branchParentId,
             };
             const stubMsg = {
+              // temporary stub with unique key; will be updated with real id when
+              // streaming completes
+              id: `assistant-stub-${newUserMsgId}`,
               text: "",
               sender: "assistant",
               llm_model: selectedLLM,

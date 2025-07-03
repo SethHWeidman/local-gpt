@@ -30,10 +30,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     if (!childrenMap.has(pid)) childrenMap.set(pid, []);
     childrenMap.get(pid).push(m);
   });
-  // Determine if the selected node is a user message to disable branching
-  const selectedMsg =
-    selectedParentId != null ? messagesById.get(selectedParentId) : null;
-  const isUserSelected = selectedMsg?.sender === "user";
 
   // Compute ancestor path IDs (from selected node up to root)
   const ancestorIds = new Set();
@@ -60,7 +56,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     }
   }
   const INDENT_PER_LEVEL = 20;
-  const renderNodes = (parentId = null, indent = 0) => {
+  const renderNodes = (parentId = null, indent = 0, visited = new Set()) => {
     const nodes = [];
     (childrenMap.get(parentId) || []).forEach((msg) => {
       const nextIndent =
@@ -96,8 +92,10 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           />
         </div>
       );
-      if (!isCollapsed) {
-        nodes.push(...renderNodes(msg.id, nextIndent));
+      if (!isCollapsed && msg.id != null && !visited.has(msg.id)) {
+        const nextVisited = new Set(visited);
+        nextVisited.add(msg.id);
+        nodes.push(...renderNodes(msg.id, nextIndent, nextVisited));
       }
     });
     return nodes;
@@ -139,12 +137,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           value={currentUserInput}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          placeholder={
-            isUserSelected
-              ? "Cannot branch from a user message"
-              : "Type your message here..."
-          }
-          disabled={isUserSelected}
+          placeholder="Type your message here..."
         ></textarea>
         <div className="controls-container">
           {" "}
@@ -173,7 +166,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           <button
             className="submit-button"
             onClick={onSubmit}
-            disabled={!currentUserInput.trim() || isUserSelected}
+            disabled={!currentUserInput.trim()}
           >
             Send
           </button>
