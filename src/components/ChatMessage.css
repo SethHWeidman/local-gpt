@@ -100,18 +100,29 @@
 /* Toggle visibility of child messages */
 .children-toggle-icon {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
+  top: 50%;
+  left: -28px;
+  transform: translateY(-50%);
   opacity: 0;
   cursor: pointer;
   user-select: none;
   font-size: 0.9rem;
   background-color: rgba(255, 255, 255, 0.6);
+  color: #333;
   border-radius: 4px;
-  padding: 2px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: opacity 0.2s ease-in-out;
+}
+
+.message-node.selected-node > .chat-message .children-toggle-icon {
+  left: -32px;
 }
 
 .chat-message:hover .children-toggle-icon {
   opacity: 1;
 }
+
