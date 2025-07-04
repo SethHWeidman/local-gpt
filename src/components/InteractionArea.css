@@ -95,9 +95,9 @@
   width: calc(100% - var(--indent));
 }
 .message-node.ancestor-node > .chat-message {
-  border: 2px solid #3399ff;
+  outline: 2px solid #3399ff;
 }
 .message-node.selected-node > .chat-message {
-  border: 3px solid #007bff;
+  outline: 3px solid #007bff;
 }
 
