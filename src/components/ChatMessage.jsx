@@ -4,7 +4,7 @@
  * Renders a single chat message. System messages are not displayed.
  * Uses ReactMarkdown to render message text with Markdown support.
  */
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import "./ChatMessage.css";
 import { ANTHROPIC_MODELS } from "../constants";
@@ -17,9 +17,12 @@ const ChatMessage = ({
 }) => {
   const { text = "", sender, llm_model } = message;
   const lines = text.split(/\r?\n/);
-  // Collapse messages exceeding the line threshold by default
+  // Collapse messages exceeding the line threshold by default (but leave streaming
+  // stub uncollapsed)
   const COLLAPSE_THRESHOLD = 4;
-  const [collapsed, setCollapsed] = useState(true);
+  const isStreamingStub =
+    typeof message.id === "string" && message.id.startsWith("assistant-stub");
+  const [collapsed, setCollapsed] = useState(() => !isStreamingStub);
   // Determine if message content exceeds threshold when rendered (overflow)
   const contentRef = useRef(null);
   const [showToggle, setShowToggle] = useState(false);

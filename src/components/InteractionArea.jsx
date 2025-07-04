@@ -3,7 +3,7 @@
  *
  * Renders the message list, model selector, and input box for user interactions.
  */
-import React, { useState } from "react";
+import { useState } from "react";
 import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
@@ -67,7 +67,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       const isCollapsed = collapsedNodes.has(msg.id);
       nodes.push(
         <div
-          key={msg.id}
+          key={msg.key || msg.id}
           className={`message-node ${isSelected ? "selected-node" : ""} ${
             isAncestor ? "ancestor-node" : ""
           }`}

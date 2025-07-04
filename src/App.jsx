@@ -156,6 +156,7 @@ const AppContent = () => {
               // temporary stub with unique key; will be updated with real id when
               // streaming completes
               id: `assistant-stub-${newUserMsgId}`,
+              key: `assistant-stub-${newUserMsgId}`,
               text: "",
               sender: "assistant",
               llm_model: selectedLLM,
@@ -232,8 +233,9 @@ const AppContent = () => {
     };
 
     // Close SSE connection on error and display a system message.
-    es.onerror = (err) => {
-      console.error("SSE error:", err);
+    es.onerror = (evt) => {
+      if (es.readyState === EventSource.CLOSED) return;
+      console.error("SSE error: connection lost", evt);
       handleClose(true);
       setCurrentConversation((prev) => ({
         ...prev,
