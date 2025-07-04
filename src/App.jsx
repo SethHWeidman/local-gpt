@@ -272,8 +272,8 @@ const AppContent = () => {
   return (
     <>
       <div className="header-material">
-        <h1 className="main-title">Local GPT</h1>
-        <p>Now with conversation history!</p>
+        <h1 className="main-title">GPTtree</h1>
+        <p>Have conversations with LLMs, visualized with a tree structure.</p>
         <StreamingIndicator isVisible={isStreaming} />
       </div>
       <div className="app-container">
