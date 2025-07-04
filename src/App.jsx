@@ -11,13 +11,13 @@ import {
   useConversation,
 } from "./contexts/ConversationContext";
 import ConversationPanel from "./components/ConversationPanel";
-import Modal from "./components/Modal";
+import StreamingIndicator from "./components/StreamingIndicator";
 import ControlPanel from "./components/ControlPanel";
 import InteractionArea from "./components/InteractionArea";
 import api from "./api";
 
 const AppContent = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [editState, setEditState] = useState({ id: null, text: "" });
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const eventSourceRef = useRef(null);
@@ -76,7 +76,7 @@ const AppContent = () => {
     }
 
     setCurrentUserInput("");
-    setIsModalVisible(true);
+    setIsStreaming(true);
 
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -123,7 +123,7 @@ const AppContent = () => {
             ],
           }));
           es.close();
-          setIsModalVisible(false);
+          setIsStreaming(false);
           return;
         }
 
@@ -228,7 +228,7 @@ const AppContent = () => {
     const handleClose = (isError = false) => {
       es.close();
       eventSourceRef.current = null;
-      setIsModalVisible(false);
+      setIsStreaming(false);
       console.log(`SSE connection closed${isError ? " due to error" : ""}.`);
     };
 
@@ -264,17 +264,17 @@ const AppContent = () => {
   const handleConversationSelected = (conversationId) => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
-      setIsModalVisible(false);
+      setIsStreaming(false);
     }
     loadConversationMessages(conversationId);
   };
 
   return (
     <>
-      <Modal isVisible={isModalVisible} message="Thinking..." />
       <div className="header-material">
         <h1 className="main-title">Local GPT</h1>
         <p>Now with conversation history!</p>
+        <StreamingIndicator isVisible={isStreaming} />
       </div>
       <div className="app-container">
         <ConversationPanel

@@ -1,0 +1,14 @@
+.streaming-indicator {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  background: #fff;
+  padding: 8px 12px;
+  font-size: 1.25em;
+  font-weight: bold;
+  color: #000;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
