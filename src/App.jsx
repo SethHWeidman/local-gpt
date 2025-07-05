@@ -14,6 +14,7 @@ import ConversationPanel from "./components/ConversationPanel";
 import StreamingIndicator from "./components/StreamingIndicator";
 import ControlPanel from "./components/ControlPanel";
 import InteractionArea from "./components/InteractionArea";
+import DeleteModeToggle from "./components/DeleteModeToggle";
 import api from "./api";
 
 const AppContent = () => {
@@ -54,11 +55,7 @@ const AppContent = () => {
       await api.deleteConversation(id);
       await fetchConversations();
       if (currentConversation?.id === id) {
-        setCurrentConversation({
-          systemMessage: "",
-          userText: "",
-          llmResponse: "",
-        });
+        await loadConversationMessages(null);
       }
     } catch (error) {
       console.error("Error deleting conversation:", error);
@@ -274,6 +271,10 @@ const AppContent = () => {
       <div className="header-material">
         <h1 className="main-title">GPTtree</h1>
         <p>Have conversations with LLMs, visualized with a tree structure.</p>
+        <DeleteModeToggle
+          isDeleteMode={isDeleteMode}
+          toggleDeleteMode={toggleDeleteMode}
+        />
         <StreamingIndicator isVisible={isStreaming} />
       </div>
       <div className="app-container">
@@ -283,7 +284,6 @@ const AppContent = () => {
           onEditComplete={handleEditConversation}
           onSelectConversation={handleConversationSelected}
           isDeleteMode={isDeleteMode}
-          toggleDeleteMode={toggleDeleteMode}
           onDeleteConversation={handleDeleteConversation}
         />
         <InteractionArea
