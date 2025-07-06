@@ -271,10 +271,10 @@ const AppContent = () => {
       <div className="header-material">
         <h1 className="main-title">GPTtree</h1>
         <p>Have conversations with LLMs, visualized with a tree structure.</p>
-        <DeleteModeToggle
+        {/* <DeleteModeToggle
           isDeleteMode={isDeleteMode}
           toggleDeleteMode={toggleDeleteMode}
-        />
+        /> */}
         <StreamingIndicator isVisible={isStreaming} />
       </div>
       <div className="app-container">

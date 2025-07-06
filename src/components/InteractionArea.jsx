@@ -67,11 +67,8 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       const isAncestor = ancestorIds.has(msg.id);
       const hasChildren = (childrenMap.get(msg.id) || []).length > 0;
       const isCollapsed = collapsedNodes.has(msg.id);
-      // Determine text collapse state for this message (default collapsed except
-      // streaming stub)
-      const isStub =
-        typeof msg.id === "string" && msg.id.startsWith("assistant-stub");
-      const initialCollapsed = !isStub;
+      // Default messages start uncollapsed; preserve any user-toggle overrides
+      const initialCollapsed = false;
       const collapsedText = collapsedMessages.has(msg.id)
         ? collapsedMessages.get(msg.id)
         : initialCollapsed;
