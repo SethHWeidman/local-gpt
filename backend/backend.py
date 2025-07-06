@@ -206,6 +206,8 @@ def stream_interaction() -> flaskResponse:
     finally:
         if cur:
             cur.close()
+        if conn:
+            release_db_connection(conn)
 
     def generate(conv_id, chosen_llm):
         assistant_message_accumulator = []
