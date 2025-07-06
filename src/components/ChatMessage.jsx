@@ -14,15 +14,13 @@ const ChatMessage = ({
   hasChildren = false,
   collapsedChildren = false,
   onToggleChildren = () => {},
+  collapsed,
+  onToggleCollapse = () => {},
 }) => {
   const { text = "", sender, llm_model } = message;
   const lines = text.split(/\r?\n/);
-  // Collapse messages exceeding the line threshold by default (but leave streaming
-  // stub uncollapsed)
+  // Maximum number of lines to display before collapse toggle appears
   const COLLAPSE_THRESHOLD = 4;
-  const isStreamingStub =
-    typeof message.id === "string" && message.id.startsWith("assistant-stub");
-  const [collapsed, setCollapsed] = useState(() => !isStreamingStub);
   // Determine if message content exceeds threshold when rendered (overflow)
   const contentRef = useRef(null);
   const [showToggle, setShowToggle] = useState(false);
@@ -42,7 +40,7 @@ const ChatMessage = ({
 
   const handleToggleClick = (e) => {
     e.stopPropagation();
-    setCollapsed((prev) => !prev);
+    onToggleCollapse();
   };
   const handleChildrenToggle = (e) => {
     e.stopPropagation();

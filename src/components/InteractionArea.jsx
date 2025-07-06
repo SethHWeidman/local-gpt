@@ -21,6 +21,8 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
   } = useConversation();
   const { messages } = currentConversation;
   const [collapsedNodes, setCollapsedNodes] = useState(new Set());
+  // Track per-message text collapse state to preserve across branch hide/show
+  const [collapsedMessages, setCollapsedMessages] = useState(() => new Map());
 
   // Build message tree structure by parent_message_id
   const messagesById = new Map(messages.map((m) => [m.id, m]));
@@ -65,6 +67,14 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       const isAncestor = ancestorIds.has(msg.id);
       const hasChildren = (childrenMap.get(msg.id) || []).length > 0;
       const isCollapsed = collapsedNodes.has(msg.id);
+      // Determine text collapse state for this message (default collapsed except
+      // streaming stub)
+      const isStub =
+        typeof msg.id === "string" && msg.id.startsWith("assistant-stub");
+      const initialCollapsed = !isStub;
+      const collapsedText = collapsedMessages.has(msg.id)
+        ? collapsedMessages.get(msg.id)
+        : initialCollapsed;
       nodes.push(
         <div
           key={msg.key || msg.id}
@@ -86,6 +96,14 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
                 const next = new Set(prev);
                 if (next.has(msg.id)) next.delete(msg.id);
                 else next.add(msg.id);
+                return next;
+              });
+            }}
+            collapsed={collapsedText}
+            onToggleCollapse={() => {
+              setCollapsedMessages((prev) => {
+                const next = new Map(prev);
+                next.set(msg.id, !collapsedText);
                 return next;
               });
             }}
