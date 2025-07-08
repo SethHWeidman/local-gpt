@@ -269,7 +269,7 @@ const AppContent = () => {
   return (
     <>
       <div className="header-material">
-        <h1 className="main-title">GPTtree</h1>
+        <h1 className="main-title">GPTree</h1>
         <p>Have conversations with LLMs, visualized with a tree structure.</p>
         {/* <DeleteModeToggle
           isDeleteMode={isDeleteMode}
