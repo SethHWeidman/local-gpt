@@ -271,10 +271,10 @@ const AppContent = () => {
       <div className="header-material">
         <h1 className="main-title">GPTree</h1>
         <p>Have conversations with LLMs, visualized with a tree structure.</p>
-        {/* <DeleteModeToggle
+        <DeleteModeToggle
           isDeleteMode={isDeleteMode}
           toggleDeleteMode={toggleDeleteMode}
-        /> */}
+        />
         <StreamingIndicator isVisible={isStreaming} />
       </div>
       <div className="app-container">
@@ -285,6 +285,7 @@ const AppContent = () => {
           onSelectConversation={handleConversationSelected}
           isDeleteMode={isDeleteMode}
           onDeleteConversation={handleDeleteConversation}
+          isStreaming={isStreaming}
         />
         <InteractionArea
           onSubmit={handleSubmit}

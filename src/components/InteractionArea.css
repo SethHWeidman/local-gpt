@@ -51,21 +51,15 @@
  .controls-container {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 5px;
+  /* Fixed width matching removed model selector */
+  width: 120px;
 }
   
- .llm-selector {
-  padding: 8px 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  background-color: white;
-  font-size: 0.9rem;
-  height: 40px;
-  min-width: 120px;
-}
   
  .submit-button {
+  /* Stretch to fill controls container */
+  flex: 1;
+  width: 100%;
   padding: 10px 20px;
   background-color: #A9A9A9;
   color: white;
@@ -100,4 +94,3 @@
 .message-node.selected-node > .chat-message {
   outline: 3px solid #007bff;
 }
-

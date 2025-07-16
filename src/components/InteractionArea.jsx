@@ -1,12 +1,11 @@
 /**
  * InteractionArea.jsx
  *
- * Renders the message list, model selector, and input box for user interactions.
+ * Renders the message list and input box for user interactions.
  */
 import { useState } from "react";
 import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
-import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
 import "./InteractionArea.css";
 
 const InteractionArea = ({ onSubmit, messagesEndRef }) => {
@@ -14,8 +13,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     currentConversation,
     currentUserInput,
     setCurrentUserInput,
-    selectedLLM,
-    setSelectedLLM,
     selectedParentId,
     setSelectedParentId,
   } = useConversation();
@@ -128,10 +125,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     }
   };
 
-  const handleLLMChange = (e) => {
-    setSelectedLLM(e.target.value);
-  };
-
   return (
     <div className="current-llm-interaction">
       <div className="message-list">
@@ -155,29 +148,6 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
           placeholder="Type your message here..."
         ></textarea>
         <div className="controls-container">
-          {" "}
-          {/* Allow selecting the language model for the conversation. */}
-          <select
-            className="llm-selector"
-            value={selectedLLM}
-            onChange={handleLLMChange}
-          >
-            <optgroup label="OpenAI">
-              {OPENAI_MODELS.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Anthropic">
-              {ANTHROPIC_MODELS.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-          {/* Send the current message to the backend. */}
           <button
             className="submit-button"
             onClick={onSubmit}
