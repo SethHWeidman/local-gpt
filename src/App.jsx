@@ -257,8 +257,12 @@ const AppContent = () => {
     }
   };
 
-  // Load messages for selected conversation and reset any active stream.
+  // Load messages for selected conversation and reset any active stream, unless
+  // re-selecting the already active conversation (e.g., on rename).
   const handleConversationSelected = (conversationId) => {
+    if (conversationId === currentConversation.id) {
+      return;
+    }
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       setIsStreaming(false);
