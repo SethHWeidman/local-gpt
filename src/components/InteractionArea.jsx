@@ -136,6 +136,7 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             Select a conversation or start a new one.
           </div>
         )}
+        {/* Anchor div for auto-scrolling to the latest message via messagesEndRef */}
         <div ref={messagesEndRef} />
       </div>
       <div className="input-area">
