@@ -20,56 +20,55 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
     setSelectedParentId,
   } = useConversation();
   const { messages } = currentConversation;
+  // collapsedNodes: a set of message IDs whose child branches are currently collapsed
+  // (hidden)
   const [collapsedNodes, setCollapsedNodes] = useState(new Set());
-  // Track per-message text collapse state to preserve across branch hide/show
+  // collapsedMessages: map of message IDs to boolean flags indicating whether each
+  // message's own text content is collapsed (true=show truncated text)
   const [collapsedMessages, setCollapsedMessages] = useState(() => new Map());
 
-  // Build message tree structure by parent_message_id
-  const messagesById = new Map(messages.map((m) => [m.id, m]));
-  const childrenMap = new Map();
-  messages.forEach((m) => {
-    const pid = m.parent_message_id;
-    if (!childrenMap.has(pid)) childrenMap.set(pid, []);
-    childrenMap.get(pid).push(m);
+  /**
+   * Build lookup maps for efficient tree traversal:
+   * - messageByIdMap: maps each message ID to its message object.
+   * - childrenByParentIdMap: groups messages by their parent_message_id.
+   */
+  const messageByIdMap = new Map(
+    messages.map((message) => [message.id, message])
+  );
+  const childrenByParentIdMap = new Map();
+  messages.forEach((message) => {
+    const parentId = message.parent_message_id;
+    if (!childrenByParentIdMap.has(parentId)) {
+      childrenByParentIdMap.set(parentId, []);
+    }
+    childrenByParentIdMap.get(parentId).push(message);
   });
 
-  // Compute ancestor path IDs (from selected node up to root)
+  // Compute ancestor path IDs (from selected node up to the root message)
   const ancestorIds = new Set();
   {
-    let curr = selectedParentId;
-    while (curr != null && messagesById.has(curr)) {
-      ancestorIds.add(curr);
-      curr = messagesById.get(curr).parent_message_id;
+    let currentId = selectedParentId;
+    while (currentId != null && messageByIdMap.has(currentId)) {
+      ancestorIds.add(currentId);
+      currentId = messageByIdMap.get(currentId).parent_message_id;
     }
   }
 
-  // Compute descendant IDs (all nodes under the selected node)
-  const descendantIds = new Set();
-  if (selectedParentId != null) {
-    const stack = [selectedParentId];
-    while (stack.length > 0) {
-      const id = stack.pop();
-      (childrenMap.get(id) || []).forEach((child) => {
-        if (child.id != null && !descendantIds.has(child.id)) {
-          descendantIds.add(child.id);
-          stack.push(child.id);
-        }
-      });
-    }
-  }
   const INDENT_PER_LEVEL = 20;
   const renderNodes = (parentId = null, indent = 0, visited = new Set()) => {
     const nodes = [];
-    (childrenMap.get(parentId) || []).forEach((msg) => {
+    (childrenByParentIdMap.get(parentId) || []).forEach((msg) => {
       const nextIndent =
         msg.sender === "assistant" ? indent + INDENT_PER_LEVEL : indent;
       const isSelected = msg.id === selectedParentId;
       const isAncestor = ancestorIds.has(msg.id);
-      const hasChildren = (childrenMap.get(msg.id) || []).length > 0;
+      const hasChildren = (childrenByParentIdMap.get(msg.id) || []).length > 0;
       const isCollapsed = collapsedNodes.has(msg.id);
-      // Default messages start uncollapsed; preserve any user-toggle overrides
+      // Default mnessages start uncollapsed; preserve any user-toggle overrides
       const initialCollapsed = false;
-      const collapsedText = collapsedMessages.has(msg.id)
+      // isTextCollapsed: whether this message's text content is collapsed (truncated)
+      // or fully shown. Falls back to default if user has not toggled.
+      const isTextCollapsed = collapsedMessages.has(msg.id)
         ? collapsedMessages.get(msg.id)
         : initialCollapsed;
       nodes.push(
@@ -84,10 +83,16 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             setSelectedParentId(msg.id);
           }}
         >
+          {/* ChatMessage props:
+             - onToggleChildren: toggles collapse/expand of this message's child 
+               branches;
+             - collapsed: whether to render truncated vs full message text.
+          */}
           <ChatMessage
             message={msg}
             hasChildren={hasChildren}
             collapsedChildren={isCollapsed}
+            // onToggleChildren: toggle visibility of this message's child branch nodes
             onToggleChildren={() => {
               setCollapsedNodes((prev) => {
                 const next = new Set(prev);
@@ -96,21 +101,27 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
                 return next;
               });
             }}
-            collapsed={collapsedText}
+            collapsed={isTextCollapsed}
+            // Update collapsedMessages map to toggle this message's text collapse
+            // state, affecting whether ChatMessage renders shortened or full content.
             onToggleCollapse={() => {
               setCollapsedMessages((prev) => {
+                // Copy previous collapse states and flip this message's collapse flag.
                 const next = new Map(prev);
-                next.set(msg.id, !collapsedText);
+                next.set(msg.id, !isTextCollapsed);
                 return next;
               });
             }}
           />
         </div>
       );
+      // If this node is expanded and not yet visited, recurse to render its children
       if (!isCollapsed && msg.id != null && !visited.has(msg.id)) {
         const nextVisited = new Set(visited);
         nextVisited.add(msg.id);
-        nodes.push(...renderNodes(msg.id, nextIndent, nextVisited));
+        nodes.push(
+          ...renderNodes(msg.id, nextIndent, nextVisited)
+        );
       }
     });
     return nodes;
