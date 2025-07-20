@@ -143,6 +143,12 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
             Select a conversation or start a new one.
           </div>
         )}
+        {/**
+         * An empty anchor div used as the scroll target for automatically
+         * scrolling the chat message list to the bottom when new messages
+         * are added. The parent component holds messagesEndRef pointing here
+         * and calls messagesEndRef.current.scrollIntoView().
+         */}
         <div ref={messagesEndRef} />
       </div>
       <div className="input-area">

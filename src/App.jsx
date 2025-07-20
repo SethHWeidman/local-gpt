@@ -38,6 +38,8 @@ const AppContent = () => {
   const messagesEndRef = useRef(null);
   // Scroll to the end of the chat when new messages arrive.
   useEffect(() => {
+    // If the anchor div for messagesEndRef exists, scroll it into view to smoothly
+    // bring the latest message into view at the bottom of the chat.
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
         behavior: "smooth",
@@ -81,6 +83,8 @@ const AppContent = () => {
     }
 
     const baseUrl = "http://localhost:5005/stream";
+    // Construct URL parameters: always include user text and add system message only
+    // when starting a new conversation.
     const urlParams = new URLSearchParams({
       userText: textToSend,
       ...(currentConversation.id ? {} : { systemMessage: systemMessage }),
@@ -107,11 +111,16 @@ const AppContent = () => {
 
     es.onmessage = (evt) => {
       console.log("Received SSE event:", evt.data);
+      // Handle incoming Server-Sent Events: parse the JSON payload and route it through
+      // the appropriate update flows (errors, new conversation, assignment of message
+      // IDs, or streaming tokens) inside this try block.
       try {
         const parsed = JSON.parse(evt.data);
 
         if (parsed.error) {
           console.error("Stream error:", parsed.error);
+          // On stream error, append a system message with the error text to the
+          // conversation.
           setCurrentConversation((prev) => ({
             ...prev,
             messages: [
@@ -141,6 +150,8 @@ const AppContent = () => {
         if (parsed.user_message_id !== undefined) {
           const newUserMsgId = parsed.user_message_id;
           assistantParentId = newUserMsgId;
+          // Add the user's message and a temporary assistant stub to the conversation
+          // to optimistically update the UI while waiting for the assistant response
           setCurrentConversation((prev) => {
             const base = prev.messages;
             const userMsg = {
@@ -173,6 +184,8 @@ const AppContent = () => {
           const newAssistId = parsed.assistant_message_id;
           setCurrentConversation((prev) => {
             const newMessages = [...prev.messages];
+            // Replace the temporary assistant stub's id with the actual id once
+            // received
             if (
               assistantMessageIndex !== -1 &&
               newMessages[assistantMessageIndex]
@@ -187,6 +200,10 @@ const AppContent = () => {
           setSelectedParentId(newAssistId);
           return;
         }
+        // Only process streaming token fragments here; ignore SSE events without a
+        // token field.
+        // Other parsed messages (e.g., assistant_message_id updates) are already
+        // handled above.
         if (parsed.token !== undefined) {
           const token = parsed.token;
 
@@ -248,6 +265,7 @@ const AppContent = () => {
   const handleEditConversation = async (id, newTopic) => {
     try {
       await api.updateConversationTopic(id, newTopic);
+      // Reset edit state to default to clear edit input and exit edit mode.
       setEditState({ id: null, text: "" });
       await fetchConversations();
       if (currentConversation.id === id) {
@@ -275,10 +293,10 @@ const AppContent = () => {
       <div className="header-material">
         <h1 className="main-title">GPTree</h1>
         <p>Have conversations with LLMs, visualized with a tree structure.</p>
-        {/* <DeleteModeToggle
+        <DeleteModeToggle
           isDeleteMode={isDeleteMode}
           toggleDeleteMode={toggleDeleteMode}
-        /> */}
+        />
         <StreamingIndicator isVisible={isStreaming} />
       </div>
       <div className="app-container">
