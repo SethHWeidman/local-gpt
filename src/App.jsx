@@ -210,6 +210,12 @@ const AppContent = () => {
           setSelectedParentId(newAssistId);
           return;
         }
+        // Handle stream completion signal
+        if (parsed.stream_complete) {
+          console.log("Stream completed successfully");
+          handleClose(false); // Normal completion - not an error
+          return;
+        }
         // Only process streaming token fragments here; ignore SSE events without a
         // token field.
         // Other parsed messages (e.g., assistant_message_id updates) are already
@@ -258,7 +264,12 @@ const AppContent = () => {
 
     // Close SSE connection on error and display a system message.
     es.onerror = (evt) => {
-      if (es.readyState === EventSource.CLOSED) return;
+      // If the connection is already closed, this is likely a normal completion, not an
+      // error
+      if (es.readyState === EventSource.CLOSED) {
+        console.log("SSE connection closed normally.");
+        return;
+      }
       console.error("SSE error: connection lost", evt);
       handleClose(true);
       setCurrentConversation((prev) => ({

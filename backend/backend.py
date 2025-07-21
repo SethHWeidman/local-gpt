@@ -76,7 +76,7 @@ def verify_password(password: str, hashed: str) -> bool:
 def generate_token(user_id: int, email: str, is_admin: bool) -> str:
     """
     Generate a JWT token for a user.
-    
+
     JWT tokens are used instead of sessions because:
     - They're stateless (no server-side storage needed)
     - They contain user info (id, email, admin status) for quick access
@@ -95,7 +95,7 @@ def generate_token(user_id: int, email: str, is_admin: bool) -> str:
 def verify_token(token: str) -> dict | None:
     """
     Verify and decode a JWT token.
-    
+
     This function is called on every protected route and during app startup
     to ensure tokens are still valid and haven't expired.
     Returns None for expired or invalid tokens, triggering re-authentication.
@@ -415,6 +415,10 @@ def stream_interaction() -> flaskResponse:
                 print(
                     f"Skipping final save for conv {conv_id}: No assistant text generated."
                 )
+
+        # Send completion signal to frontend
+        completion_data = json.dumps({"stream_complete": True})
+        yield f"data: {completion_data}\n\n"
 
     return flask.Response(
         generate(conversation_id, llm_choice), mimetype="text/event-stream"
