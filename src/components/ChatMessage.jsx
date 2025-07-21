@@ -21,6 +21,15 @@ const ChatMessage = ({
   const lines = text.split(/\r?\n/);
   // Maximum number of lines to display before collapse toggle appears
   const COLLAPSE_THRESHOLD = 4;
+
+  // CSS style for WebKit line clamping - truncates text to N lines
+  const LINE_CLAMP_STYLE = {
+    display: "-webkit-box", // Required for WebKit line clamp
+    WebkitLineClamp: COLLAPSE_THRESHOLD, // Number of lines to show
+    WebkitBoxOrient: "vertical", // Stack lines vertically
+    overflow: "hidden", // Hide overflow text
+  };
+
   // Determine if message content exceeds threshold when rendered (overflow)
   const contentRef = useRef(null);
   const [showToggle, setShowToggle] = useState(false);
@@ -46,21 +55,27 @@ const ChatMessage = ({
     e.stopPropagation();
     onToggleChildren();
   };
-  const displayText = collapsed
-    ? lines.slice(0, COLLAPSE_THRESHOLD).join("\n")
-    : text;
+
+  // Determine if collapse toggle should be shown based on content height or line count
   useEffect(() => {
     let shouldShow = false;
+
+    // Check if rendered content overflows its container (height-based detection)
     if (contentRef.current) {
       const { scrollHeight, clientHeight } = contentRef.current;
       if (scrollHeight > clientHeight) {
         shouldShow = true;
       }
     }
+
+    // Also show toggle if text has more lines than threshold (line-based detection)
     if (lines.length > COLLAPSE_THRESHOLD) {
       shouldShow = true;
     }
+
     setShowToggle(shouldShow);
+    // Dependencies: [text] - when text changes, we need to re-evaluate if toggle should
+    // show
   }, [text]);
   return (
     <div className={messageClass}>
@@ -70,18 +85,9 @@ const ChatMessage = ({
       <div
         className="message-content"
         ref={contentRef}
-        style={
-          collapsed
-            ? {
-                display: "-webkit-box",
-                WebkitLineClamp: COLLAPSE_THRESHOLD,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }
-            : undefined
-        }
+        style={collapsed ? LINE_CLAMP_STYLE : undefined}
       >
-        <ReactMarkdown>{displayText || "..."}</ReactMarkdown>
+        <ReactMarkdown>{text || "..."}</ReactMarkdown>
       </div>
       {showToggle && (
         <div className="collapse-icon" onClick={handleToggleClick}>
