@@ -10,11 +10,13 @@ import {
   ConversationProvider,
   useConversation,
 } from "./contexts/ConversationContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ConversationPanel from "./components/ConversationPanel";
 import StreamingIndicator from "./components/StreamingIndicator";
 import ControlPanel from "./components/ControlPanel";
 import InteractionArea from "./components/InteractionArea";
 import DeleteModeToggle from "./components/DeleteModeToggle";
+import LoginButton from "./components/LoginButton";
 import api from "./api";
 
 const AppContent = () => {
@@ -22,6 +24,7 @@ const AppContent = () => {
   const [editState, setEditState] = useState({ id: null, text: "" });
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const eventSourceRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const {
     currentConversation,
@@ -35,7 +38,8 @@ const AppContent = () => {
     setSelectedParentId,
   } = useConversation();
 
-  const messagesEndRef = useRef(null);
+  const { isAdmin, loading } = useAuth();
+
   // Scroll to the end of the chat when new messages arrive.
   useEffect(() => {
     // If the anchor div for messagesEndRef exists, scroll it into view to smoothly
@@ -47,6 +51,12 @@ const AppContent = () => {
       });
     }
   }, [currentConversation.messages]);
+
+  // Show loading state while verifying authentication token on app startup
+  // This prevents UI flicker and ensures proper authentication state
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
 
   // Toggle delete mode to enable removing conversations.
   const toggleDeleteMode = () => setIsDeleteMode((prev) => !prev);
@@ -291,14 +301,21 @@ const AppContent = () => {
   return (
     <>
       <div className="header-material">
-        <h1 className="main-title">GPTree</h1>
-        <p>Have conversations with LLMs, visualized with a tree structure.</p>
-        <DeleteModeToggle
-          isDeleteMode={isDeleteMode}
-          toggleDeleteMode={toggleDeleteMode}
-        />
-        <StreamingIndicator isVisible={isStreaming} />
+        <div className="header-content">
+          <h1 className="main-title">GPTree</h1>
+          <p>Have conversations with LLMs, visualized with a tree structure.</p>
+          {isAdmin && (
+            <DeleteModeToggle
+              isDeleteMode={isDeleteMode}
+              toggleDeleteMode={toggleDeleteMode}
+            />
+          )}
+        </div>
+        <div className="header-auth">
+          <LoginButton />
+        </div>
       </div>
+      <StreamingIndicator isVisible={isStreaming} />
       <div className="app-container">
         <ConversationPanel
           editState={editState}
@@ -319,9 +336,11 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <ConversationProvider>
-    <AppContent />
-  </ConversationProvider>
+  <AuthProvider>
+    <ConversationProvider>
+      <AppContent />
+    </ConversationProvider>
+  </AuthProvider>
 );
 
 export default App;

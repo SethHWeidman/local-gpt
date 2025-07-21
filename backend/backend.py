@@ -7,17 +7,22 @@ Provides endpoints for:
 - database connection pooling and CORS preflight handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import functools
 import json
 import pathlib
+import os
 
+import anthropic
+import bcrypt
 import flask
 from flask import request as flask_request
 from flask.wrappers import Response as flaskResponse
 import flask_cors
+import jwt
 import openai
-import anthropic
 import psycopg2.extensions, psycopg2.extras, psycopg2.pool
+
 
 ## Connection pool for PostgreSQL database.
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
@@ -34,6 +39,12 @@ postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
 FLASK_APP = flask.Flask(__name__)
 flask_cors.CORS(FLASK_APP)
 
+# JWT configuration
+JWT_SECRET_KEY = os.environ.get(
+    'JWT_SECRET_KEY', 'your-secret-key-change-in-production'
+)
+JWT_ALGORITHM = 'HS256'
+
 
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
@@ -49,6 +60,73 @@ ANTHROPIC_MODELS = set(MODEL_CONFIG["anthropic_models"])
 OPENAI_MODELS = set(MODEL_CONFIG["openai_models"])
 
 REASONING_MODELS = set(MODEL_CONFIG["reasoning_models"])
+
+
+# Authentication helper functions
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its hash."""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+
+def generate_token(user_id: int, email: str, is_admin: bool) -> str:
+    """
+    Generate a JWT token for a user.
+    
+    JWT tokens are used instead of sessions because:
+    - They're stateless (no server-side storage needed)
+    - They contain user info (id, email, admin status) for quick access
+    - They have built-in expiration (7 days) for security
+    - They can be easily verified without database lookups
+    """
+    payload = {
+        'user_id': user_id,
+        'email': email,
+        'is_admin': is_admin,
+        'exp': datetime.utcnow() + timedelta(days=7),  # Token expires in 7 days
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def verify_token(token: str) -> dict | None:
+    """
+    Verify and decode a JWT token.
+    
+    This function is called on every protected route and during app startup
+    to ensure tokens are still valid and haven't expired.
+    Returns None for expired or invalid tokens, triggering re-authentication.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+def require_auth(f):
+    """Decorator to require authentication for an endpoint."""
+
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = flask_request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return flask.jsonify({'error': 'No token provided'}), 401
+
+        token = auth_header.split(' ')[1]
+        payload = verify_token(token)
+        if not payload:
+            return flask.jsonify({'error': 'Invalid or expired token'}), 401
+
+        flask_request.current_user = payload
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 def _anthropic_call(
@@ -482,6 +560,138 @@ def delete_conversation(id: int) -> flaskResponse:
         if conn:
             cur.close()
             release_db_connection(conn)
+
+
+@FLASK_APP.route("/api/auth/register", methods=['POST'])
+def register() -> flaskResponse:
+    """
+    POST /api/auth/register
+
+    Register a new user with email and password.
+    """
+    data = flask_request.get_json()
+    if not data or not data.get('email') or not data.get('password'):
+        return flask.jsonify({'error': 'Email and password are required'}), 400
+
+    email = data['email'].lower().strip()
+    password = data['password']
+
+    if len(password) < 6:
+        return (
+            flask.jsonify({'error': 'Password must be at least 6 characters long'}),
+            400,
+        )
+
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Check if user already exists
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cur.fetchone():
+            return flask.jsonify({'error': 'User with this email already exists'}), 400
+
+        # Create new user
+        password_hash = hash_password(password)
+        cur.execute(
+            "INSERT INTO users (email, password_hash) VALUES (%s, %s) "
+            "RETURNING id, is_admin",
+            (email, password_hash),
+        )
+        user_id, is_admin = cur.fetchone()
+        conn.commit()
+
+        # Generate token
+        token = generate_token(user_id, email, is_admin)
+
+        return flask.jsonify(
+            {
+                'token': token,
+                'user': {'id': user_id, 'email': email, 'is_admin': is_admin},
+            }
+        )
+
+    except Exception as e:
+        print("Error registering user:", e)
+        if conn:
+            conn.rollback()
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
+@FLASK_APP.route("/api/auth/login", methods=['POST'])
+def login() -> flaskResponse:
+    """
+    POST /api/auth/login
+
+    Login with email and password.
+    """
+    data = flask_request.get_json()
+    if not data or not data.get('email') or not data.get('password'):
+        return flask.jsonify({'error': 'Email and password are required'}), 400
+
+    email = data['email'].lower().strip()
+    password = data['password']
+
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Find user
+        cur.execute(
+            "SELECT id, password_hash, is_admin FROM users WHERE email = %s", (email,)
+        )
+        user = cur.fetchone()
+
+        if not user or not verify_password(password, user[1]):
+            return flask.jsonify({'error': 'Invalid email or password'}), 401
+
+        user_id, _, is_admin = user
+
+        # Generate token
+        token = generate_token(user_id, email, is_admin)
+
+        return flask.jsonify(
+            {
+                'token': token,
+                'user': {'id': user_id, 'email': email, 'is_admin': is_admin},
+            }
+        )
+
+    except Exception as e:
+        print("Error logging in user:", e)
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
+
+@FLASK_APP.route("/api/auth/me", methods=['GET'])
+@require_auth
+def get_current_user() -> flaskResponse:
+    """
+    GET /api/auth/me
+
+    Get current user information from token.
+    """
+    user = flask_request.current_user
+    return flask.jsonify(
+        {
+            'user': {
+                'id': user['user_id'],
+                'email': user['email'],
+                'is_admin': user['is_admin'],
+            }
+        }
+    )
 
 
 def _get_current_date_and_time_string() -> str:
