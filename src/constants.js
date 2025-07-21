@@ -10,6 +10,11 @@ import modelConfig from "../shared/models.json";
 export const API_ENDPOINTS = {
   CONVERSATIONS: "http://localhost:5005/api/conversations",
   MESSAGES: "http://localhost:5005/api/messages",
+  AUTH: {
+    LOGIN: "http://localhost:5005/api/auth/login",
+    REGISTER: "http://localhost:5005/api/auth/register",
+    ME: "http://localhost:5005/api/auth/me",
+  },
 };
 
 export const OPENAI_MODELS = modelConfig.openai_models;
