@@ -9,9 +9,17 @@ import "./ConversationPanel.css";
 
 const ConversationPanel = ({
   editState,
+  // `setEditState` is a callback to update edit state - receives new edit state object
+  // from parent
   setEditState,
+  // `onEditComplete` is a callback to handle completion of conversation title editing -
+  // receives conversation ID and new title from parent
   onEditComplete,
+  // `onDeleteConversation` is a callback to handle conversation deletion - receives
+  // conversation ID from parent
   onDeleteConversation,
+  // `onSelectConversation` is a callback to handle conversation selection - receives
+  // conversation ID from parent to load messages and manage state
   onSelectConversation,
   isDeleteMode,
 }) => {
@@ -22,9 +30,9 @@ const ConversationPanel = ({
     setEditState({ id: conv.id, text: conv.topic });
   };
 
-  // Save edits when pressing Enter.
+  // Save edits when pressing Enter. Uses editState from props to get current edit data.
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && editState) {
       onEditComplete(editState.id, editState.text);
     }
   };
@@ -41,6 +49,7 @@ const ConversationPanel = ({
         <ConversationItem
           key={conv.id}
           conversation={conv}
+          // `onSelect Wraps the selection handler with the specific conversation ID
           onSelect={() => onSelectConversation(conv.id)}
           onDoubleClick={handleDoubleClick}
           isEditing={editState.id === conv.id}

@@ -8,21 +8,30 @@ import "./ConversationItem.css";
 
 const ConversationItem = ({
   conversation,
+  // `onSelect` is a callback to handle conversation selection - receives conversation
+  // ID from parent
   onSelect,
+  // `onDoubleClick` is a callback to handle double-click for editing - receives
+  // conversation object from parent
   onDoubleClick,
   isEditing,
   editText,
+  // `onEditChange` is a callback to handle edit text changes - receives new text value
+  // from parent
   onEditChange,
+  // `onKeyDown` is a callback to handle keyboard events during editing - receives event
+  // from parent
   onKeyDown,
   isDeleteMode,
+  // `onDelete` is a callback to handle conversation deletion - receives conversation ID
+  // from parent
   onDelete,
 }) => {
-
   return (
     <div
       className={`conversation-item ${isDeleteMode ? "delete-mode" : ""}`}
-      onClick={() => onSelect(conversation.id)}
-      onDoubleClick={() => onDoubleClick(conversation)}
+      onClick={() => onSelect(conversation.id)} // Triggers conversation selection
+      onDoubleClick={() => onDoubleClick(conversation)} // Triggers edit mode
     >
       {isEditing ? (
         <input
@@ -30,7 +39,7 @@ const ConversationItem = ({
           value={editText}
           onChange={(e) => onEditChange(e.target.value)}
           onKeyDown={onKeyDown}
-          autoFocus
+          autoFocus // Automatically focus the input when entering edit mode
         />
       ) : (
         <div className="conversation-content">

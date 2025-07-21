@@ -1,7 +1,7 @@
 .conversation-item {
-    display: flex;
-    align-items: center;
-    padding: 8px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
   cursor: pointer;
 }
 
