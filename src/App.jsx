@@ -346,6 +346,8 @@ const AppContent = () => {
   );
 };
 
+// Wrap the app with AuthProvider and ConversationProvider so that any component in the
+// tree can access authentication and conversation context via hooks.
 const App = () => (
   <AuthProvider>
     <ConversationProvider>
