@@ -7,8 +7,14 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { API_ENDPOINTS } from "../constants";
 
+// Create a Context for authentication state and actions.
+// Components can use the `useAuth` hook to access these values/functions.
 const AuthContext = createContext();
 
+/**
+ * Custom hook to access authentication context.
+ * Throws an error if used outside of an AuthProvider.
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -17,17 +23,21 @@ export const useAuth = () => {
   return context;
 };
 
+/**
+ * AuthProvider wraps the application and provides authentication state (current user,
+ * loading status) and actions (login, logout, register) via React Context to any child
+ * component.
+ */
 export const AuthProvider = ({ children }) => {
+  // The authenticated user object, or null if not logged in.
   const [user, setUser] = useState(null);
-  // Loading state prevents UI flicker during token verification on app startup
-  // Without this, users would briefly see login UI before being authenticated
+  // Loading indicator to suppress UI until token is verified on startup.
   const [loading, setLoading] = useState(true);
 
-  // Check for existing token on app load
-  // This is crucial for maintaining login state across browser sessions:
-  // - Without this, users would be logged out on every page refresh
-  // - We verify the token with the server to ensure it's still valid
-  // - Invalid/expired tokens are automatically cleaned up
+  /**
+   * On mount, check for an existing auth token in localStorage. If found, verify it
+   * with the backend; otherwise, clear loading state.
+   */
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     if (token) {
@@ -37,48 +47,45 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  /**
+   * verifyToken: confirm token validity with backend and load user data. On invalid or
+   * errored verification, remove stale token.
+   */
   const verifyToken = async (token) => {
     try {
-      // Verify the stored token is still valid by calling the backend
-      // This prevents users from staying "logged in" with expired tokens
       const response = await fetch(API_ENDPOINTS.AUTH.ME, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
       } else {
-        // Token is invalid/expired - clean it up from localStorage
-        // This prevents accumulation of stale tokens
         localStorage.removeItem("auth_token");
       }
     } catch (error) {
       console.error("Token verification failed:", error);
-      // Network error or other issue - clean up the token to be safe
       localStorage.removeItem("auth_token");
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * login: authenticate user and persist token on success.
+   * Returns { success, error? }.
+   */
   const login = async (email, password) => {
     try {
       const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Store the JWT token in localStorage for persistence across browser sessions
-        // This allows users to stay logged in even after closing/reopening the browser
         localStorage.setItem("auth_token", data.token);
         setUser(data.user);
         return { success: true };
@@ -91,13 +98,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * register: create a new user account and persist token on success.
+   * Returns { success, error? }.
+   */
   const register = async (email, password) => {
     try {
       const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -116,13 +125,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * logout: remove authentication token and clear user state.
+   */
   const logout = () => {
-    // Remove the token from localStorage to complete the logout process
-    // This ensures the user won't be automatically logged back in on page refresh
     localStorage.removeItem("auth_token");
     setUser(null);
   };
 
+  // Exposed context value: current user, status and auth actions.
   const value = {
     user,
     loading,
