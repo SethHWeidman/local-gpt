@@ -8,6 +8,7 @@ Provides endpoints for:
 """
 
 from datetime import datetime, timedelta
+import dotenv
 import functools
 import json
 import pathlib
@@ -23,26 +24,17 @@ import jwt
 import openai
 import psycopg2.extensions, psycopg2.extras, psycopg2.pool
 
+dotenv.load_dotenv()
 
 ## Connection pool for PostgreSQL database.
-postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(
-    1,
-    20,
-    user="seth",
-    password="newpassword",
-    host="localhost",
-    port="5432",
-    database="local-gpt",
-)
-
+DATABASE_URL = os.getenv('DATABASE_URL')
+postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 20, dsn=DATABASE_URL)
 
 FLASK_APP = flask.Flask(__name__)
 flask_cors.CORS(FLASK_APP)
 
 # JWT configuration
-JWT_SECRET_KEY = os.environ.get(
-    'JWT_SECRET_KEY', 'your-secret-key-change-in-production'
-)
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
 JWT_ALGORITHM = 'HS256'
 
 

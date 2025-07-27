@@ -6,3 +6,5 @@ package-lock.json
 
 # Vite build output
 dist/
+
+.env
