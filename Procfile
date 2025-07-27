@@ -1,1 +1,1 @@
-web: ./start-local-gpt.sh
+web: gunicorn backend.backend:APP
