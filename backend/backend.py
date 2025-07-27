@@ -13,6 +13,7 @@ import functools
 import json
 import pathlib
 import os
+from os import environ
 
 import anthropic
 import bcrypt
@@ -30,16 +31,23 @@ dotenv.load_dotenv()
 DATABASE_URL = os.getenv('DATABASE_URL')
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 20, dsn=DATABASE_URL)
 
-FLASK_APP = flask.Flask(__name__)
-flask_cors.CORS(FLASK_APP)
+APP = flask.Flask(__name__)
+flask_cors.CORS(APP)
+
+ROOT_DIR = pathlib.Path(__file__).resolve().parent
+FLASK_APP = flask.Flask(
+    __name__,
+    static_folder=ROOT_DIR / "frontend" / "dist",
+    static_url_path="",  # keeps URLs like /assets/main.js
+)
 
 # JWT configuration
-JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+JWT_SECRET_KEY = environ.get('JWT_SECRET_KEY')
 JWT_ALGORITHM = 'HS256'
-
 
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
+
 
 current_filepath = pathlib.Path(__file__).resolve()
 config_filepath = current_filepath.parent.parent / "shared" / "models.json"
@@ -141,7 +149,7 @@ def _anthropic_call(
     return ANTHROPIC_CLIENT.messages.create(**params)
 
 
-@FLASK_APP.route("/stream", methods=["GET"])
+@APP.route("/stream", methods=["GET"])
 def stream_interaction() -> flaskResponse:
     """
     Stream an OpenAI or Anthropic LLM response via Server-Sent Events (SSE).
@@ -417,7 +425,7 @@ def stream_interaction() -> flaskResponse:
     )
 
 
-@FLASK_APP.route("/api/conversations", methods=['GET'])
+@APP.route("/api/conversations", methods=['GET'])
 def get_conversations() -> flaskResponse:
     """
     GET /api/conversations
@@ -449,7 +457,7 @@ def get_conversations() -> flaskResponse:
             release_db_connection(conn)
 
 
-@FLASK_APP.route("/api/messages/<int:conversation_id>", methods=['GET'])
+@APP.route("/api/messages/<int:conversation_id>", methods=['GET'])
 def get_messages(conversation_id: int) -> flaskResponse:
     """
     GET /api/messages/<conversation_id>
@@ -501,7 +509,7 @@ def get_messages(conversation_id: int) -> flaskResponse:
             release_db_connection(conn)
 
 
-@FLASK_APP.route("/api/conversations/<int:id>", methods=['PUT'])
+@APP.route("/api/conversations/<int:id>", methods=['PUT'])
 def update_conversation(id: int) -> flaskResponse:
     """
     PUT /api/conversations/<id>
@@ -531,7 +539,7 @@ def update_conversation(id: int) -> flaskResponse:
             release_db_connection(conn)
 
 
-@FLASK_APP.route("/api/conversations/<int:id>", methods=['DELETE'])
+@APP.route("/api/conversations/<int:id>", methods=['DELETE'])
 def delete_conversation(id: int) -> flaskResponse:
     """
     DELETE /api/conversations/<id>
@@ -558,7 +566,7 @@ def delete_conversation(id: int) -> flaskResponse:
             release_db_connection(conn)
 
 
-@FLASK_APP.route("/api/auth/register", methods=['POST'])
+@APP.route("/api/auth/register", methods=['POST'])
 def register() -> flaskResponse:
     """
     POST /api/auth/register
@@ -620,7 +628,7 @@ def register() -> flaskResponse:
             release_db_connection(conn)
 
 
-@FLASK_APP.route("/api/auth/login", methods=['POST'])
+@APP.route("/api/auth/login", methods=['POST'])
 def login() -> flaskResponse:
     """
     POST /api/auth/login
@@ -670,7 +678,7 @@ def login() -> flaskResponse:
             release_db_connection(conn)
 
 
-@FLASK_APP.route("/api/auth/me", methods=['GET'])
+@APP.route("/api/auth/me", methods=['GET'])
 @require_auth
 def get_current_user() -> flaskResponse:
     """
@@ -690,6 +698,24 @@ def get_current_user() -> flaskResponse:
     )
 
 
+@APP.route("/", defaults={"requested_path": ""})
+@APP.route("/<path:requested_path>")
+def serve_spa(requested_path: str):
+    """
+    Serve static files built by Vite or fall back to index.html so React Router deep
+    links work in production.
+    """
+    full_path = pathlib.Path(APP.static_folder) / requested_path
+
+    if requested_path and full_path.exists():
+        # Path points to an actual file inside frontend/dist `flask.send_from_directory`
+        # still needs string paths.
+        return flask.send_from_directory(APP.static_folder, requested_path)
+
+    # Otherwise send index.html for SPA routing
+    return flask.send_from_directory(APP.static_folder, "index.html")
+
+
 def _get_current_date_and_time_string() -> str:
     """Return the current date and time as a human-readable string."""
     now = datetime.now()
@@ -704,7 +730,3 @@ def get_db_connection() -> psycopg2.extensions.connection:
 def release_db_connection(conn: psycopg2.extensions.connection) -> None:
     """Release a database connection back to the PostgreSQL pool."""
     postgreSQL_pool.putconn(conn)
-
-
-if __name__ == '__main__':
-    FLASK_APP.run(port=5005, debug=True)
