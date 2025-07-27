@@ -1,0 +1,11 @@
+{
+  "name": "gptree-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "heroku-postbuild": "cd frontend && npm install && npm run build"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
