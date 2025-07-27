@@ -728,3 +728,7 @@ def get_db_connection() -> psycopg2.extensions.connection:
 def release_db_connection(conn: psycopg2.extensions.connection) -> None:
     """Release a database connection back to the PostgreSQL pool."""
     postgreSQL_pool.putconn(conn)
+
+
+if __name__ == '__main__':
+    APP.run(port=5005, debug=True)
