@@ -31,15 +31,13 @@ dotenv.load_dotenv()
 DATABASE_URL = os.getenv('DATABASE_URL')
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 20, dsn=DATABASE_URL)
 
-APP = flask.Flask(__name__)
-flask_cors.CORS(APP)
-
 ROOT_DIR = pathlib.Path(__file__).resolve().parent
-FLASK_APP = flask.Flask(
+APP = flask.Flask(
     __name__,
-    static_folder=ROOT_DIR / "frontend" / "dist",
+    static_folder=ROOT_DIR.parent / "dist",  # Points to /dist at repo root
     static_url_path="",  # keeps URLs like /assets/main.js
 )
+flask_cors.CORS(APP)
 
 # JWT configuration
 JWT_SECRET_KEY = environ.get('JWT_SECRET_KEY')
