@@ -5,7 +5,7 @@
  * OPENAI_MODELS, ANTHROPIC_MODELS, and REASONING_MODELS are lists loaded from shared/models.json.
  * Note: REASONING_MODELS is used by the backend to determine temperature settings.
  */
-import modelConfig from "../shared/models.json";
+import modelConfig from "../../shared/models.json";
 
 export const API_ENDPOINTS = {
   CONVERSATIONS: "http://localhost:5005/api/conversations",
