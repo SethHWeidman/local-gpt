@@ -7,13 +7,16 @@
  */
 import modelConfig from "../../shared/models.json";
 
+// Base URL for API: in development use local backend, in production use same origin
+const BASE_URL = import.meta.env.DEV ? "http://localhost:5005" : "";
+
 export const API_ENDPOINTS = {
-  CONVERSATIONS: "http://localhost:5005/api/conversations",
-  MESSAGES: "http://localhost:5005/api/messages",
+  CONVERSATIONS: `${BASE_URL}/api/conversations`,
+  MESSAGES: `${BASE_URL}/api/messages`,
   AUTH: {
-    LOGIN: "http://localhost:5005/api/auth/login",
-    REGISTER: "http://localhost:5005/api/auth/register",
-    ME: "http://localhost:5005/api/auth/me",
+    LOGIN: `${BASE_URL}/api/auth/login`,
+    REGISTER: `${BASE_URL}/api/auth/register`,
+    ME: `${BASE_URL}/api/auth/me`,
   },
 };
 
