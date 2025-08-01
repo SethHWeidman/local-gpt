@@ -43,6 +43,10 @@ flask_cors.CORS(APP)
 JWT_SECRET_KEY = environ.get('JWT_SECRET_KEY')
 JWT_ALGORITHM = 'HS256'
 
+# Fail fast if JWT secret not configured
+if not JWT_SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY environment variable must be set")
+
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
