@@ -38,7 +38,13 @@ const AppContent = () => {
     setSelectedParentId,
   } = useConversation();
 
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, isAuthenticated } = useAuth();
+  // Highlight the login button briefly when an unauthenticated user attempts to type
+  const [loginHighlight, setLoginHighlight] = useState(false);
+  const triggerLoginHighlight = () => {
+    setLoginHighlight(true);
+    setTimeout(() => setLoginHighlight(false), 500);
+  };
 
   // Scroll to the end of the chat when new messages arrive.
   useEffect(() => {
@@ -326,7 +332,7 @@ const AppContent = () => {
           )}
         </div>
         <div className="header-auth">
-          <LoginButton />
+          <LoginButton highlight={loginHighlight} />
         </div>
       </div>
       <StreamingIndicator isVisible={isStreaming} />
@@ -342,8 +348,13 @@ const AppContent = () => {
         <InteractionArea
           onSubmit={handleSubmit}
           messagesEndRef={messagesEndRef}
+          isAuthenticated={isAuthenticated}
+          onRequireAuth={triggerLoginHighlight}
         />
-        <ControlPanel />
+        <ControlPanel
+          isAuthenticated={isAuthenticated}
+          onRequireAuth={triggerLoginHighlight}
+        />
       </div>
     </>
   );

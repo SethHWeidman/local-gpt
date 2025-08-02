@@ -5,11 +5,15 @@
  */
 import { useConversation } from "../contexts/ConversationContext";
 
-const ControlPanel = () => {
+const ControlPanel = ({ isAuthenticated, onRequireAuth }) => {
   const { currentConversation, setCurrentConversation } = useConversation();
 
   // Update the systemMessage field in the current conversation state.
   const handleSystemMessageChange = (event) => {
+    if (!isAuthenticated) {
+      onRequireAuth();
+      return;
+    }
     setCurrentConversation((prev) => ({
       ...prev,
       systemMessage: event.target.value,

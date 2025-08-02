@@ -9,7 +9,12 @@ import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
 import "./InteractionArea.css";
 
-const InteractionArea = ({ onSubmit, messagesEndRef }) => {
+const InteractionArea = ({
+  onSubmit,
+  messagesEndRef,
+  isAuthenticated,
+  onRequireAuth,
+}) => {
   const {
     currentConversation,
     currentUserInput,
@@ -119,20 +124,26 @@ const InteractionArea = ({ onSubmit, messagesEndRef }) => {
       if (!isCollapsed && msg.id != null && !visited.has(msg.id)) {
         const nextVisited = new Set(visited);
         nextVisited.add(msg.id);
-        nodes.push(
-          ...renderNodes(msg.id, nextIndent, nextVisited)
-        );
+        nodes.push(...renderNodes(msg.id, nextIndent, nextVisited));
       }
     });
     return nodes;
   };
 
   const handleTextChange = (e) => {
+    if (!isAuthenticated) {
+      onRequireAuth();
+      return;
+    }
     setCurrentUserInput(e.target.value);
   };
 
   // Submit on Enter when Shift is not held.
   const handleKeyDown = (e) => {
+    if (!isAuthenticated) {
+      onRequireAuth();
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       onSubmit();

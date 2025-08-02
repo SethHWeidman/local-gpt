@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import LoginForm from "./LoginForm";
 
-const LoginButton = () => {
+const LoginButton = ({ highlight }) => {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const { user, logout, isAuthenticated, loading } = useAuth();
 
@@ -30,7 +30,10 @@ const LoginButton = () => {
 
   return (
     <>
-      <button onClick={() => setShowLoginForm(true)} className="login-button">
+      <button
+        onClick={() => setShowLoginForm(true)}
+        className={`login-button${highlight ? " highlight" : ""}`}
+      >
         Login
       </button>
       {showLoginForm && <LoginForm onClose={() => setShowLoginForm(false)} />}

@@ -7,7 +7,8 @@ Provides endpoints for:
 - database connection pooling and CORS preflight handling.
 """
 
-from datetime import datetime, timedelta
+import datetime as dt
+from datetime import datetime
 import dotenv
 import functools
 import json
@@ -89,7 +90,8 @@ def generate_token(user_id: int, email: str, is_admin: bool) -> str:
         'user_id': user_id,
         'email': email,
         'is_admin': is_admin,
-        'exp': datetime.utcnow() + timedelta(days=7),  # Token expires in 7 days
+        # Token expires in 7 days
+        'exp': datetime.now(dt.UTC) + dt.timedelta(days=7),
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
@@ -131,6 +133,27 @@ def require_auth(f):
     return decorated_function
 
 
+def optional_auth(f):
+    """Decorator that optionally handles authentication for an endpoint."""
+
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = flask_request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            payload = verify_token(token)
+            if payload:
+                flask_request.current_user = payload
+            else:
+                flask_request.current_user = None
+        else:
+            flask_request.current_user = None
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 def _anthropic_call(
     *,
     model: str = "claude-sonnet-4-0",
@@ -152,6 +175,7 @@ def _anthropic_call(
 
 
 @APP.route("/stream", methods=["GET"])
+@require_auth
 def stream_interaction() -> flaskResponse:
     """
     Stream an OpenAI or Anthropic LLM response via Server-Sent Events (SSE).
@@ -242,10 +266,10 @@ def stream_interaction() -> flaskResponse:
             conversation_topic = _get_current_date_and_time_string()
             cur.execute(
                 """
-                INSERT INTO conversations (conversation_topic)
-                VALUES (%s) RETURNING id
-                """,
-                (conversation_topic,),
+            INSERT INTO conversations (conversation_topic, user_id)
+            VALUES (%s, %s) RETURNING id
+            """,
+                (conversation_topic, flask_request.current_user['user_id']),
             )
             conversation_id_row = cur.fetchone()
             if not conversation_id_row:
@@ -428,12 +452,18 @@ def stream_interaction() -> flaskResponse:
 
 
 @APP.route("/api/conversations", methods=['GET'])
+@optional_auth
 def get_conversations() -> flaskResponse:
     """
     GET /api/conversations
 
     Return a list of all conversations with their IDs and topics.
+    If user is not authenticated, return empty list.
     """
+    # If no user is authenticated, return empty list
+    if not flask_request.current_user:
+        return flask.jsonify([])
+
     conn = None
     cur = None
     try:
@@ -443,8 +473,10 @@ def get_conversations() -> flaskResponse:
             """
             SELECT id, conversation_topic
             FROM conversations
+            WHERE user_id = %s
             ORDER BY created_at DESC
-            """
+            """,
+            (flask_request.current_user['user_id'],),
         )
         conversations = cur.fetchall()
         return flask.jsonify(
@@ -460,6 +492,7 @@ def get_conversations() -> flaskResponse:
 
 
 @APP.route("/api/messages/<int:conversation_id>", methods=['GET'])
+@require_auth
 def get_messages(conversation_id: int) -> flaskResponse:
     """
     GET /api/messages/<conversation_id>
@@ -471,6 +504,13 @@ def get_messages(conversation_id: int) -> flaskResponse:
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Ensure conversation belongs to current user
+        cur.execute(
+            "SELECT 1 FROM conversations WHERE id = %s AND user_id = %s",
+            (conversation_id, flask_request.current_user['user_id']),
+        )
+        if cur.fetchone() is None:
+            return flask.jsonify({'error': 'Not found'}), 404
         cur.execute(
             """
             SELECT 
@@ -512,6 +552,7 @@ def get_messages(conversation_id: int) -> flaskResponse:
 
 
 @APP.route("/api/conversations/<int:id>", methods=['PUT'])
+@require_auth
 def update_conversation(id: int) -> flaskResponse:
     """
     PUT /api/conversations/<id>
@@ -524,6 +565,13 @@ def update_conversation(id: int) -> flaskResponse:
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        # Ensure conversation belongs to current user
+        cur.execute(
+            "SELECT 1 FROM conversations WHERE id = %s AND user_id = %s",
+            (id, flask_request.current_user['user_id']),
+        )
+        if cur.fetchone() is None:
+            return flask.jsonify({'error': 'Not found'}), 404
         cur.execute(
             'UPDATE conversations SET conversation_topic = %s WHERE id = %s',
             (topic, id),
@@ -542,6 +590,7 @@ def update_conversation(id: int) -> flaskResponse:
 
 
 @APP.route("/api/conversations/<int:id>", methods=['DELETE'])
+@require_auth
 def delete_conversation(id: int) -> flaskResponse:
     """
     DELETE /api/conversations/<id>
@@ -553,6 +602,13 @@ def delete_conversation(id: int) -> flaskResponse:
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        # Ensure conversation belongs to current user
+        cur.execute(
+            "SELECT 1 FROM conversations WHERE id = %s AND user_id = %s",
+            (id, flask_request.current_user['user_id']),
+        )
+        if cur.fetchone() is None:
+            return flask.jsonify({'error': 'Not found'}), 404
         cur.execute("DELETE FROM messages WHERE conversation_id = %s", (id,))
         cur.execute("DELETE FROM conversations WHERE id = %s", (id,))
         conn.commit()

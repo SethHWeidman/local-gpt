@@ -253,6 +253,10 @@ body {
   cursor: not-allowed;
 }
 
+.login-button.highlight {
+  font-weight: bold;
+}
+
 .user-info {
   display: flex;
   align-items: center;
