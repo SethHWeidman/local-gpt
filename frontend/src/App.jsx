@@ -117,6 +117,12 @@ const AppContent = () => {
       urlParams.append("parentMessageId", selectedParentId);
     }
 
+    // Append auth token for SSE authentication
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      urlParams.append("token", token);
+    }
+
     const url = `${baseUrl}?${urlParams.toString()}`;
 
     const es = new EventSource(url);

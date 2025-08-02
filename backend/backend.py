@@ -119,10 +119,13 @@ def require_auth(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = flask_request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ', 1)[1]
+        else:
+            token = flask_request.args.get('token')
+        if not token:
             return flask.jsonify({'error': 'No token provided'}), 401
 
-        token = auth_header.split(' ')[1]
         payload = verify_token(token)
         if not payload:
             return flask.jsonify({'error': 'Invalid or expired token'}), 401
