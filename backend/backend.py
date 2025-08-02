@@ -100,8 +100,8 @@ def verify_token(token: str) -> dict | None:
     """
     Verify and decode a JWT token.
 
-    This function is called on every protected route and during app startup
-    to ensure tokens are still valid and haven't expired.
+    This function is called on every protected route and during app startup to ensure
+    tokens are still valid and haven't expired.
     Returns None for expired or invalid tokens, triggering re-authentication.
     """
     try:
@@ -114,10 +114,23 @@ def verify_token(token: str) -> dict | None:
 
 
 def require_auth(f):
-    """Decorator to require authentication for an endpoint."""
+    """
+    Decorator to enforce that a valid JWT is present on protected endpoints. This wraps
+    the view function, extracting a token (from the Authorization header or a 'token'
+    query param), verifies it, and populates flask_request.current_user. If the token is
+    missing or invalid, returns a 401 error response before calling the endpoint.
+    Example usage:
+
+        @APP.route('/some-protected')
+        @require_auth
+        def some_protected_view():
+            # flask_request.current_user is guaranteed to be set here
+            return jsonify(...)
+    """
 
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
+        # Look for token in header first, then fallback to query string
         auth_header = flask_request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header.split(' ', 1)[1]
@@ -137,7 +150,13 @@ def require_auth(f):
 
 
 def optional_auth(f):
-    """Decorator that optionally handles authentication for an endpoint."""
+    """
+    Decorator for endpoints that accept both authenticated and anonymous users.
+
+    Attempts to parse a JWT from the Authorization header; on success, sets
+    flask_request.current_user but does not reject if no or invalid token is present.
+    Use this for endpoints like /api/conversations that should work for both cases.
+    """
 
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
