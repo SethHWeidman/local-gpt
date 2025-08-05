@@ -60,10 +60,15 @@ export const ConversationProvider = ({ children }) => {
 
   const { isAuthenticated } = useAuth();
 
-  // Fetch conversation list when user logs in.
+  // Fetch conversation list on login; clear state on logout.
   useEffect(() => {
     if (isAuthenticated) {
       fetchConversations();
+    } else {
+      setConversations([]);
+      setCurrentConversation({ id: null, messages: [], systemMessage: "" });
+      setCurrentUserInput("");
+      setSelectedParentId(null);
     }
   }, [isAuthenticated, fetchConversations]);
 
