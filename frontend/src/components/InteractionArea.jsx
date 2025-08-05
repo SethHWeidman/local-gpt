@@ -7,6 +7,7 @@ import { useState } from "react";
 import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
+import { useAuth } from "../contexts/AuthContext";
 import "./InteractionArea.css";
 
 const InteractionArea = ({
@@ -24,6 +25,7 @@ const InteractionArea = ({
     selectedParentId,
     setSelectedParentId,
   } = useConversation();
+  const { user } = useAuth();
   const { messages } = currentConversation;
   // collapsedNodes: a set of message IDs whose child branches are currently collapsed
   // (hidden)
@@ -190,16 +192,27 @@ const InteractionArea = ({
             value={selectedLLM}
             onChange={handleLLMChange}
           >
+            <option value="" disabled>
+              Select a model...
+            </option>
             <optgroup label="OpenAI">
               {OPENAI_MODELS.map((model) => (
-                <option key={model} value={model}>
+                <option
+                  key={model}
+                  value={model}
+                  disabled={!user?.openai_api_key}
+                >
                   {model}
                 </option>
               ))}
             </optgroup>
             <optgroup label="Anthropic">
               {ANTHROPIC_MODELS.map((model) => (
-                <option key={model} value={model}>
+                <option
+                  key={model}
+                  value={model}
+                  disabled={!user?.anthropic_api_key}
+                >
                   {model}
                 </option>
               ))}
@@ -209,7 +222,7 @@ const InteractionArea = ({
           <button
             className="submit-button"
             onClick={onSubmit}
-            disabled={!currentUserInput.trim()}
+            disabled={!currentUserInput.trim() || !selectedLLM}
           >
             Send
           </button>

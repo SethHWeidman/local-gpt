@@ -43,8 +43,9 @@ export const ConversationProvider = ({ children }) => {
 
   // The draft text for the user's next message.
   const [currentUserInput, setCurrentUserInput] = useState("");
-  // The chosen language model (e.g., OpenAI model identifier).
-  const [selectedLLM, setSelectedLLM] = useState(OPENAI_MODELS[0]);
+  // The chosen language model (e.g., OpenAI model identifier). Defaults to none so
+  // users must explicitly select a model.
+  const [selectedLLM, setSelectedLLM] = useState("");
   // Optional parent message ID if replying to a specific message.
   const [selectedParentId, setSelectedParentId] = useState(null);
 

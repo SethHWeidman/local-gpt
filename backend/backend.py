@@ -766,16 +766,73 @@ def get_current_user() -> flaskResponse:
 
     Get current user information from token.
     """
+    # Retrieve up-to-date API keys from the database (token payload does not include them)
     user = flask_request.current_user
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT openai_api_key, anthropic_api_key FROM users WHERE id = %s",
+            (user['user_id'],),
+        )
+        row = cur.fetchone() or (None, None)
+        openai_key, anthropic_key = row
+    except Exception as e:
+        print(f"Error loading user API keys for user_id={user['user_id']}: {e}")
+        openai_key = None
+        anthropic_key = None
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
+
     return flask.jsonify(
         {
             'user': {
                 'id': user['user_id'],
                 'email': user['email'],
                 'is_admin': user['is_admin'],
+                'openai_api_key': openai_key,
+                'anthropic_api_key': anthropic_key,
             }
         }
     )
+
+
+@APP.route("/api/auth/keys", methods=['PUT'])
+@require_auth
+def update_user_keys() -> flaskResponse:
+    """
+    PUT /api/auth/keys
+    Update the current user's API keys.
+    """
+    data = flask_request.get_json() or {}
+    openai_key = data.get('openai_api_key')
+    anthropic_key = data.get('anthropic_api_key')
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users "
+            "SET openai_api_key = %s, anthropic_api_key = %s "
+            "WHERE id = %s",
+            (openai_key, anthropic_key, flask_request.current_user['user_id']),
+        )
+        conn.commit()
+        return flask.jsonify({'success': True})
+    except Exception as e:
+        print("Error updating user keys:", e)
+        if conn:
+            conn.rollback()
+        return flask.jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if conn:
+            cur.close()
+            release_db_connection(conn)
 
 
 @APP.route("/", defaults={"requested_path": ""})

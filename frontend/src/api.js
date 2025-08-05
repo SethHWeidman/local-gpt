@@ -50,6 +50,37 @@ const api = {
     }
     return response.json();
   },
+
+  /**
+   * Get the current user's API keys.
+   */
+  async getUserSettings() {
+    const token = localStorage.getItem("auth_token");
+    const response = await fetch(API_ENDPOINTS.AUTH.ME, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    return {
+      openai_api_key: data.user.openai_api_key,
+      anthropic_api_key: data.user.anthropic_api_key,
+    };
+  },
+
+  /**
+   * Update the current user's API keys.
+   */
+  async updateUserSettings({ openai_api_key, anthropic_api_key }) {
+    const token = localStorage.getItem("auth_token");
+    const response = await fetch(API_ENDPOINTS.AUTH.KEYS, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ openai_api_key, anthropic_api_key }),
+    });
+    return response.json();
+  },
 };
 
 export default api;

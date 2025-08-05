@@ -11,6 +11,7 @@ import {
   useConversation,
 } from "./contexts/ConversationContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import SettingsPage from "./components/SettingsPage";
 import ConversationPanel from "./components/ConversationPanel";
 import StreamingIndicator from "./components/StreamingIndicator";
 import ControlPanel from "./components/ControlPanel";
@@ -39,6 +40,7 @@ const AppContent = () => {
   } = useConversation();
 
   const { isAdmin, loading, isAuthenticated } = useAuth();
+  const [showSettings, setShowSettings] = useState(false);
   // Highlight the login button briefly when an unauthenticated user attempts to type
   const [loginHighlight, setLoginHighlight] = useState(false);
   const triggerLoginHighlight = () => {
@@ -62,6 +64,11 @@ const AppContent = () => {
   // This prevents UI flicker and ensures proper authentication state
   if (loading) {
     return <div className="loading">Loading...</div>;
+  }
+
+  // Show settings page when requested
+  if (showSettings) {
+    return <SettingsPage onClose={() => setShowSettings(false)} />;
   }
 
   // Toggle delete mode to enable removing conversations.
@@ -338,6 +345,14 @@ const AppContent = () => {
           )}
         </div>
         <div className="header-auth">
+          {isAuthenticated && (
+            <button
+              className="settings-button"
+              onClick={() => setShowSettings(true)}
+            >
+              Settings
+            </button>
+          )}
           <LoginButton highlight={loginHighlight} />
         </div>
       </div>
