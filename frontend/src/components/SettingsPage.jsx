@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api";
+import { useAuth } from "../contexts/AuthContext";
 import "./SettingsPage.css";
 
 /**
@@ -12,6 +13,7 @@ const SettingsPage = ({ onClose }) => {
   const [anthropicKey, setAnthropicKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const { fetchCurrentUser } = useAuth();
 
   useEffect(() => {
     async function loadKeys() {
@@ -34,6 +36,8 @@ const SettingsPage = ({ onClose }) => {
         openai_api_key: openaiKey,
         anthropic_api_key: anthropicKey,
       });
+      // refresh AuthContext so new keys enable models immediately
+      await fetchCurrentUser();
       onClose();
     } catch (e) {
       console.error("Failed to save settings:", e);

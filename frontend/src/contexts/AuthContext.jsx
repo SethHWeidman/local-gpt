@@ -133,6 +133,33 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  /**
+   * Fetch current user info (including updated API keys) from the backend.
+   */
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        setUser(null);
+        return;
+      }
+      const response = await fetch(API_ENDPOINTS.AUTH.ME, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+        localStorage.removeItem("auth_token");
+      }
+    } catch (error) {
+      console.error("Failed to fetch current user:", error);
+      setUser(null);
+      localStorage.removeItem("auth_token");
+    }
+  };
+
   // Exposed context value: current user, status and auth actions.
   const value = {
     user,
@@ -140,6 +167,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    fetchCurrentUser,
     isAuthenticated: !!user,
     isAdmin: user?.is_admin || false,
   };
