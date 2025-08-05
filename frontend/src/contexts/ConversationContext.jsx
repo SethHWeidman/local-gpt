@@ -19,6 +19,7 @@ import {
 } from "react";
 import api from "../api";
 import { OPENAI_MODELS } from "../constants";
+import { useAuth } from "./AuthContext";
 
 // Create a Context for conversation data and actions.
 // Components that need conversation state or behavior can subscribe to this context.
@@ -57,10 +58,14 @@ export const ConversationProvider = ({ children }) => {
     }
   }, []);
 
-  // When the provider mounts, load initial conversation list.
+  const { isAuthenticated } = useAuth();
+
+  // Fetch conversation list when user logs in.
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    if (isAuthenticated) {
+      fetchConversations();
+    }
+  }, [isAuthenticated, fetchConversations]);
 
   /**
    * Load messages for a given conversation ID.
