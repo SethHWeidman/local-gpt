@@ -345,6 +345,7 @@ const AppContent = () => {
           )}
         </div>
         <div className="header-auth">
+          <LoginButton highlight={loginHighlight} />
           {isAuthenticated && (
             <button
               className="settings-button"
@@ -353,7 +354,6 @@ const AppContent = () => {
               Settings
             </button>
           )}
-          <LoginButton highlight={loginHighlight} />
         </div>
       </div>
       <StreamingIndicator isVisible={isStreaming} />

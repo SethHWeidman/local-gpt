@@ -232,6 +232,9 @@ body {
 .header-auth {
   margin-top: 20px;
   margin-right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .login-button {
@@ -290,6 +293,20 @@ body {
 
 .logout-button:hover {
   background-color: #c82333;
+}
+
+.settings-button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.settings-button:hover {
+  background-color: #5a6268;
 }
 
 /* Loading state - prevents UI flicker during token verification */
