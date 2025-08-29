@@ -88,6 +88,8 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         localStorage.setItem("auth_token", data.token);
         setUser(data.user);
+        // Fetch full user profile (including API keys) after login
+        await fetchCurrentUser();
         return { success: true };
       } else {
         return { success: false, error: data.error };
@@ -115,6 +117,8 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         localStorage.setItem("auth_token", data.token);
         setUser(data.user);
+        // Fetch full user profile (including API keys) after registration
+        await fetchCurrentUser();
         return { success: true };
       } else {
         return { success: false, error: data.error };
