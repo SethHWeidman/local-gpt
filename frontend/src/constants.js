@@ -7,18 +7,21 @@
  */
 import modelConfig from "../../shared/models.json";
 
-// Base URL for API: in development use local backend, in production use same origin
-const BASE_URL = import.meta.env.DEV ? "http://localhost:5005" : "";
+// Dev hits the local Flask server; prod must be relative to the current page (/gptree/)
+const ORIGIN = import.meta.env.DEV ? "http://localhost:5005" : "";
+const API_ROOT = import.meta.env.DEV ? "/api" : "api"; // NOTE: no leading "/" in prod
 
 export const API_ENDPOINTS = {
-  CONVERSATIONS: `${BASE_URL}/api/conversations`,
-  MESSAGES: `${BASE_URL}/api/messages`,
+  CONVERSATIONS: `${ORIGIN}${API_ROOT}/conversations`,
+  MESSAGES: `${ORIGIN}${API_ROOT}/messages`,
   AUTH: {
-    LOGIN: `${BASE_URL}/api/auth/login`,
-    REGISTER: `${BASE_URL}/api/auth/register`,
-    ME: `${BASE_URL}/api/auth/me`,
-    KEYS: `${BASE_URL}/api/auth/keys`,
+    LOGIN: `${ORIGIN}${API_ROOT}/auth/login`,
+    REGISTER: `${ORIGIN}${API_ROOT}/auth/register`,
+    ME: `${ORIGIN}${API_ROOT}/auth/me`,
+    KEYS: `${ORIGIN}${API_ROOT}/auth/keys`,
   },
+  // If you reference the SSE endpoint anywhere, expose it here too:
+  STREAM: import.meta.env.DEV ? `${ORIGIN}/stream` : `stream`,
 };
 
 export const OPENAI_MODELS = modelConfig.openai_models;
