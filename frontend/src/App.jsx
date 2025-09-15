@@ -20,6 +20,7 @@ import DeleteModeToggle from "./components/DeleteModeToggle";
 import LoginButton from "./components/LoginButton";
 import api from "./api";
 
+import { API_ENDPOINTS } from "./constants";
 const AppContent = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [editState, setEditState] = useState({ id: null, text: "" });
@@ -105,10 +106,8 @@ const AppContent = () => {
       eventSourceRef.current = null;
     }
 
-    // Stream endpoint: use localhost in dev, same host in production
-    const baseUrl = import.meta.env.DEV
-      ? "http://localhost:5005/stream"
-      : "/stream";
+    // Stream endpoint from constants
+    const baseUrl = API_ENDPOINTS.STREAM;
     // Construct URL parameters: always include user text and add system message only
     // when starting a new conversation.
     const urlParams = new URLSearchParams({

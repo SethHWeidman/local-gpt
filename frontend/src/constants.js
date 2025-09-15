@@ -8,7 +8,14 @@
 import modelConfig from "../../shared/models.json";
 
 // Dev hits the local Flask server; prod must be relative to the current page (/gptree/)
+// Note: `import.meta.env.DEV` is a boolean that Vite injects at build time
 const ORIGIN = import.meta.env.DEV ? "http://localhost:5005" : "";
+// Build the API root differently in dev vs prod:
+// - DEV: talk to Flask at http://localhost:5005, so we need an ABSOLUTE path: "/api"
+//        (ORIGIN has no trailing slash; leading slash here avoids
+//        http://localhost:5005api)
+// - PROD: app lives under /gptree/, so we need a RELATIVE path: "api" so the browser
+//        resolves to /gptree/api/... instead of /api/...
 const API_ROOT = import.meta.env.DEV ? "/api" : "api"; // NOTE: no leading "/" in prod
 
 export const API_ENDPOINTS = {
@@ -20,8 +27,8 @@ export const API_ENDPOINTS = {
     ME: `${ORIGIN}${API_ROOT}/auth/me`,
     KEYS: `${ORIGIN}${API_ROOT}/auth/keys`,
   },
-  // If you reference the SSE endpoint anywhere, expose it here too:
-  STREAM: import.meta.env.DEV ? `${ORIGIN}/stream` : `stream`,
+  // SSE endpoint (absolute in dev, relative in prod):
+  STREAM: import.meta.env.DEV ? `${ORIGIN}/stream` : "stream",
 };
 
 export const OPENAI_MODELS = modelConfig.openai_models;
