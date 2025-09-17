@@ -22,6 +22,8 @@ const ConversationPanel = ({
   // conversation ID from parent to load messages and manage state
   onSelectConversation,
   isDeleteMode,
+  // Trigger starting a brand new conversation
+  onNewConversation,
 }) => {
   const { conversations } = useConversation();
 
@@ -39,6 +41,11 @@ const ConversationPanel = ({
 
   return (
     <div className="past-chats-panel">
+      <div style={{ marginBottom: "12px" }}>
+        <button className="settings-button" onClick={onNewConversation}>
+          New Conversation
+        </button>
+      </div>
       <div className="panel-header">
         <div className="past-chats-label">
           {isDeleteMode ? "Delete Conversations" : "Past Conversations"}

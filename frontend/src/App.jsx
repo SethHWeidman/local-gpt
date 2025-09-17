@@ -36,6 +36,7 @@ const AppContent = () => {
     fetchConversations,
     loadConversationMessages,
     selectedLLM,
+    setSelectedLLM,
     selectedParentId,
     setSelectedParentId,
   } = useConversation();
@@ -317,6 +318,20 @@ const AppContent = () => {
     }
   };
 
+  // Start a brand new conversation and reset UI state.
+  const handleNewConversation = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setIsStreaming(false);
+    setEditState({ id: null, text: "" });
+    setCurrentConversation({ id: null, messages: [], systemMessage: "" });
+    setCurrentUserInput("");
+    setSelectedParentId(null);
+    setSelectedLLM(""); // Reset model selector to "Select a model..."
+  };
+
   // Load messages for selected conversation and reset any active stream, unless
   // re-selecting the already active conversation (e.g., on rename).
   const handleConversationSelected = (conversationId) => {
@@ -364,6 +379,7 @@ const AppContent = () => {
           onSelectConversation={handleConversationSelected}
           isDeleteMode={isDeleteMode}
           onDeleteConversation={handleDeleteConversation}
+          onNewConversation={handleNewConversation}
         />
         <InteractionArea
           onSubmit={handleSubmit}
