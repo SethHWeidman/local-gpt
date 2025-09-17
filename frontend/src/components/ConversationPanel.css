@@ -1,9 +1,28 @@
 .past-chats-label {
-    margin-bottom: 16px;
+    margin-bottom: 8px; /* Tighter spacing above the list */
 }
 
 .past-chats-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+/* New Conversation button + spacing */
+.new-conversation-container {
+    margin-bottom: 16px; /* More space between button and heading */
+}
+
+.new-conversation-button {
+    background-color: #e6e6e6;
+    color: #333;
+    border: 1px solid #cccccc;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.new-conversation-button:hover {
+    background-color: #dddddd;
 }

@@ -41,8 +41,8 @@ const ConversationPanel = ({
 
   return (
     <div className="past-chats-panel">
-      <div style={{ marginBottom: "12px" }}>
-        <button className="settings-button" onClick={onNewConversation}>
+      <div className="new-conversation-container">
+        <button className="new-conversation-button" onClick={onNewConversation}>
           New Conversation
         </button>
       </div>
