@@ -33,11 +33,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 20, dsn=DATABASE_URL)
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parent
-APP = flask.Flask(
-    __name__,
-    static_folder=ROOT_DIR.parent / "dist",  # Points to /dist at repo root
-    static_url_path="",  # keeps URLs like /assets/main.js
-)
+APP = flask.Flask(__name__, static_folder=ROOT_DIR.parent / "dist", static_url_path="")
 flask_cors.CORS(APP)
 
 # JWT configuration
@@ -59,9 +55,7 @@ MODEL_CONFIG = json.loads(config_filepath.read_text())
 ANTHROPIC_CLIENT = anthropic.Anthropic()
 MAX_ANTHROPIC_TOKENS = 8192
 ANTHROPIC_MODELS = set(MODEL_CONFIG["anthropic_models"])
-
 OPENAI_MODELS = set(MODEL_CONFIG["openai_models"])
-
 REASONING_MODELS = set(MODEL_CONFIG["reasoning_models"])
 
 
