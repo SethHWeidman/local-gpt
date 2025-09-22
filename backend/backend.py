@@ -47,7 +47,6 @@ if not JWT_SECRET_KEY:
 OPENAI = openai.OpenAI()
 OPEN_AI_CHAT_COMPLETIONS_CLIENT = OPENAI.chat.completions
 
-
 current_filepath = pathlib.Path(__file__).resolve()
 config_filepath = current_filepath.parent.parent / "shared" / "models.json"
 MODEL_CONFIG = json.loads(config_filepath.read_text())

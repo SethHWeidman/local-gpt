@@ -34,6 +34,17 @@ const InteractionArea = ({
   // message's own text content is collapsed (true=show truncated text)
   const [collapsedMessages, setCollapsedMessages] = useState(() => new Map());
 
+  // Collapse all messages' text content in the current conversation.
+  const handleCollapseAll = () => {
+    const next = new Map();
+    messages.forEach((m) => {
+      if (m && m.id != null) {
+        next.set(m.id, true);
+      }
+    });
+    setCollapsedMessages(next);
+  };
+
   /**
    * Build lookup maps for efficient tree traversal:
    * - messageByIdMap: maps each message ID to its message object.
@@ -158,6 +169,16 @@ const InteractionArea = ({
 
   return (
     <div className="current-llm-interaction">
+      <div className="message-list-header">
+        <button
+          className="collapse-all-button"
+          onClick={handleCollapseAll}
+          disabled={!messages || messages.length === 0}
+          title="Collapse all messages"
+        >
+          Collapse all
+        </button>
+      </div>
       <div className="message-list">
         {/* Display messages or placeholder when no conversation is selected. */}
         {messages && messages.length > 0 ? (
