@@ -169,17 +169,17 @@ const InteractionArea = ({
 
   return (
     <div className="current-llm-interaction">
-      <div className="message-list-header">
-        <button
-          className="collapse-all-button"
-          onClick={handleCollapseAll}
-          disabled={!messages || messages.length === 0}
-          title="Collapse all messages"
-        >
-          Collapse all
-        </button>
-      </div>
       <div className="message-list">
+        <div className="message-list-controls">
+          <button
+            className="collapse-all-button"
+            onClick={handleCollapseAll}
+            disabled={!messages || messages.length === 0}
+            title="Collapse all messages"
+          >
+            Collapse all
+          </button>
+        </div>
         {/* Display messages or placeholder when no conversation is selected. */}
         {messages && messages.length > 0 ? (
           renderNodes()
