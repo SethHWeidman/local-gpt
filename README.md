@@ -4,7 +4,7 @@
    with branches with an LLM, all in a single conversation view:
    https://www.loom.com/share/97620e12283146a28fdb5900d4199ba3
 2. Additional functionality includes: the ability to chat with ChatGPT and Anthropic
-   mmodels in the same conversation, auth and login functionality, an d a "Collapse All"
+   models in the same conversation, auth and login functionality, and a "Collapse All"
    button.
 
 ## Setup
