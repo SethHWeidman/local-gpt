@@ -21,6 +21,24 @@ import LoginButton from "./components/LoginButton";
 import api from "./api";
 
 import { API_ENDPOINTS } from "./constants";
+
+// Format a default conversation title using the user's local time, matching the
+// backend's style (e.g., "October 29, 2025, 9:37 AM").
+const formatLocalDefaultTitle = () => {
+  const d = new Date();
+  const datePart = d.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timePart = d.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${datePart}, ${timePart}`;
+};
+
 const AppContent = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [editState, setEditState] = useState({ id: null, text: "" });
@@ -176,7 +194,20 @@ const AppContent = () => {
           }));
           setSelectedParentId(null);
 
-          fetchConversations();
+          // Rename the newly created conversation to the user's local time so the
+          // default title reflects their timezone instead of the server's.
+          const localTitle = formatLocalDefaultTitle();
+          api
+            .updateConversationTopic(newId, localTitle)
+            .then(() => fetchConversations())
+            .catch((e) => {
+              console.warn(
+                "Failed to set local-time conversation title; falling back to server " +
+                  "title",
+                e
+              );
+              fetchConversations();
+            });
           return;
         }
         if (parsed.user_message_id !== undefined) {
