@@ -11,13 +11,13 @@
 
 1. Install Python and Node.js. Python 3.12 and Node.js 14+ work; previous versions may
    work as well.
-2. Install PostGRES and start it. The following two commands should work assuming you 
+2. Install PostGRES and start it. The following two commands should work assuming you
    have Homebrew installed:
-    1. `brew install postgresql`
-    2. `brew services start postgresql`
-3. `cd` into the `db` directory and run:
+   1. `brew install postgresql`
+   2. `brew services start postgresql`
+3. From the repo root, run:
    1. `createdb local-gpt`
-   2. `psql -d local-gpt -U <your_username> -a -f db/db.sql`
+   2. `python scripts/migrate.py`
 4. Set your OpenAI and Anthropic API keys:
    ```bash
    export OPENAI_API_KEY="your_openai_api_key"
@@ -27,3 +27,28 @@
 ## Start
 
 `./start-local-gpt.sh`
+
+## Database schema + password reset
+
+### Load environment
+
+```sh
+cd /Users/seth/repos/local-gpt
+set -a && source .env && set +a
+```
+
+### Initialize or migrate schema
+
+```sh
+python scripts/migrate.py
+```
+
+This script is safe to re-run; it tracks applied migrations.
+
+### Reset a user's password
+
+```sh
+scripts/reset-user-password.sh seth@sethweidman.com cibQip-tiqdez-9jinno
+```
+
+Replace the email and password arguments as needed.
