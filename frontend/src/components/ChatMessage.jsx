@@ -39,8 +39,10 @@ const ChatMessage = ({
     sender === "assistant" && ANTHROPIC_MODELS.includes(llm_model);
   // Compute CSS classes based on sender and model type.
   const messageClass = `chat-message ${
-    sender === "user" ? "user-message" : "assistant-message"
-  }${isAnthropic ? " anthropic-message" : ""}`;
+    sender === "user"
+      ? "user-message"
+      : `assistant-message${isAnthropic ? " anthropic-message" : " openai-message"}`
+  }`;
 
   // Do not render system messages.
   if (sender === "system") {

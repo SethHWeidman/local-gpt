@@ -13,7 +13,7 @@
 }
 
 .user-message {
-  background-color: #78909C;
+  background-color: var(--accent);
   color: white;
   margin: 0;
   border-bottom-left-radius: 5px;
@@ -22,16 +22,22 @@
 }
 
 .assistant-message {
-  background-color: #D1D5DB;
-  color: #333;
+  color: var(--text);
   margin: 0;
   max-width: none;
   width: auto;
   border-bottom-right-radius: 5px;
+  border: 1px solid var(--border);
+}
+
+.assistant-message.openai-message {
+  background-color: var(--assistant-bg);
+  border-color: var(--assistant-border);
 }
 
 .assistant-message.anthropic-message {
-  background-color: #FFD6AE;
+  background-color: #fde7cc;
+  border-color: #f2d2a9;
 }
 
 .message-content p {
@@ -39,13 +45,13 @@
 }
 
 .message-content code {
-  background-color: rgba(0,0,0,0.1);
+  background-color: var(--panel-contrast);
   padding: 2px 4px;
   border-radius: 4px;
 }
 
 .message-content pre {
-  background-color: rgba(0,0,0,0.1);
+  background-color: var(--panel-contrast);
   padding: 10px;
   border-radius: 4px;
   overflow-x: auto;
@@ -55,8 +61,8 @@
   position: absolute;
   top: -8px;
   left: -8px;
-  background-color: rgba(0, 0, 0, 0.75);
-  color: #333;
+  background-color: var(--panel-contrast);
+  color: var(--text);
   padding: 2px 6px;
   font-size: 0.75rem;
   border-radius: 8px;
@@ -65,6 +71,7 @@
   pointer-events: none;
   white-space: nowrap;
   z-index: 10;
+  border: 1px solid var(--border);
 }
 
 .chat-message:hover .model-badge {
@@ -72,11 +79,11 @@
 }
 
 .assistant-message .model-badge {
-  background-color: #E2E6EB;
+  background-color: var(--panel-contrast);
 }
 
 .assistant-message.anthropic-message .model-badge {
-  background-color: #FFE2BA;
+  background-color: #f6dbbb;
 }
 
 .collapse-icon {
@@ -87,10 +94,11 @@
   cursor: pointer;
   user-select: none;
   font-size: 0.9rem;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.7);
   border-radius: 4px;
   padding: 2px;
   transition: opacity 0.2s ease-in-out;
+  border: 1px solid var(--border);
 }
 
 .chat-message:hover .collapse-icon {
@@ -107,8 +115,8 @@
   cursor: pointer;
   user-select: none;
   font-size: 0.9rem;
-  background-color: rgba(255, 255, 255, 0.6);
-  color: #333;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: var(--text);
   border-radius: 4px;
   width: 24px;
   height: 24px;
@@ -116,6 +124,7 @@
   align-items: center;
   justify-content: center;
   transition: opacity 0.2s ease-in-out;
+  border: 1px solid var(--border);
 }
 
 .message-node.selected-node > .chat-message .children-toggle-icon {
@@ -125,4 +134,3 @@
 .chat-message:hover .children-toggle-icon {
   opacity: 1;
 }
-
