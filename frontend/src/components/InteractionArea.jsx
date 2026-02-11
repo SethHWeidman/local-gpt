@@ -3,7 +3,7 @@
  *
  * Renders the message list, model selector, and input box for user interactions.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatMessage from "./ChatMessage";
 import { useConversation } from "../contexts/ConversationContext";
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from "../constants";
@@ -27,6 +27,11 @@ const InteractionArea = ({
   } = useConversation();
   const { user } = useAuth();
   const { messages } = currentConversation;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [menuDirection, setMenuDirection] = useState("down");
+  const [menuMaxHeight, setMenuMaxHeight] = useState(260);
+  const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
   // collapsedNodes: a set of message IDs whose child branches are currently collapsed
   // (hidden)
   const [collapsedNodes, setCollapsedNodes] = useState(new Set());
@@ -51,7 +56,7 @@ const InteractionArea = ({
    * - childrenByParentIdMap: groups messages by their parent_message_id.
    */
   const messageByIdMap = new Map(
-    messages.map((message) => [message.id, message])
+    messages.map((message) => [message.id, message]),
   );
   const childrenByParentIdMap = new Map();
   messages.forEach((message) => {
@@ -131,7 +136,7 @@ const InteractionArea = ({
               });
             }}
           />
-        </div>
+        </div>,
       );
       // If this node is expanded and not yet visited, recurse to render its children
       if (!isCollapsed && msg.id != null && !visited.has(msg.id)) {
@@ -163,9 +168,39 @@ const InteractionArea = ({
     }
   };
 
-  const handleLLMChange = (e) => {
-    setSelectedLLM(e.target.value);
-  };
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || 0;
+    const spaceBelow = viewportHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const preferUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const available = preferUp ? spaceAbove : spaceBelow;
+    const nextMaxHeight = Math.max(160, Math.min(320, available));
+    setMenuDirection(preferUp ? "up" : "down");
+    setMenuMaxHeight(nextMaxHeight);
+  }, [isDropdownOpen]);
 
   return (
     <div className="current-llm-interaction">
@@ -208,37 +243,90 @@ const InteractionArea = ({
         <div className="controls-container">
           {" "}
           {/* Allow selecting the language model for the conversation. */}
-          <select
-            className="llm-selector"
-            value={selectedLLM}
-            onChange={handleLLMChange}
-          >
-            <option value="" disabled>
-              Select a model...
-            </option>
-            <optgroup label="OpenAI">
-              {OPENAI_MODELS.map((model) => (
-                <option
-                  key={model}
-                  value={model}
-                  disabled={!user?.openai_api_key}
-                >
-                  {model}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Anthropic">
-              {ANTHROPIC_MODELS.map((model) => (
-                <option
-                  key={model}
-                  value={model}
-                  disabled={!user?.anthropic_api_key}
-                >
-                  {model}
-                </option>
-              ))}
-            </optgroup>
-          </select>
+          <div className="llm-dropdown" ref={dropdownRef}>
+            <button
+              type="button"
+              className={`llm-selector llm-trigger${
+                isDropdownOpen ? " open" : ""
+              }`}
+              ref={triggerRef}
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              aria-haspopup="listbox"
+              aria-expanded={isDropdownOpen}
+            >
+              <span
+                className={
+                  selectedLLM ? "llm-trigger-label" : "llm-trigger-placeholder"
+                }
+              >
+                {selectedLLM || "Select a model..."}
+              </span>
+              <span className="llm-trigger-icon" aria-hidden="true">
+                ▾
+              </span>
+            </button>
+            {isDropdownOpen && (
+              <div
+                className={`llm-menu${menuDirection === "up" ? " open-up" : ""}`}
+                role="listbox"
+                style={{ maxHeight: `${menuMaxHeight}px` }}
+              >
+                <div className="llm-group" role="group" aria-label="OpenAI">
+                  <div className="llm-group-label">
+                    OpenAI{user?.openai_api_key ? "" : " (API key missing)"}
+                  </div>
+                  {OPENAI_MODELS.map((model) => {
+                    const isDisabled = !user?.openai_api_key;
+                    const isSelected = selectedLLM === model;
+                    return (
+                      <button
+                        type="button"
+                        key={model}
+                        className={`llm-option${isSelected ? " selected" : ""}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          setSelectedLLM(model);
+                          setIsDropdownOpen(false);
+                        }}
+                        disabled={isDisabled}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        {model}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="llm-group" role="group" aria-label="Anthropic">
+                  <div className="llm-group-label">
+                    Anthropic
+                    {user?.anthropic_api_key ? "" : " (API key missing)"}
+                  </div>
+                  {ANTHROPIC_MODELS.map((model) => {
+                    const isDisabled = !user?.anthropic_api_key;
+                    const isSelected = selectedLLM === model;
+                    return (
+                      <button
+                        type="button"
+                        key={model}
+                        className={`llm-option${isSelected ? " selected" : ""}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          setSelectedLLM(model);
+                          setIsDropdownOpen(false);
+                        }}
+                        disabled={isDisabled}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        {model}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
           {/* Send the current message to the backend. */}
           <button
             className="submit-button"

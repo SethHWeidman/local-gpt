@@ -62,6 +62,13 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 5px;
+  width: 19ch;
+  flex: 0 0 auto;
+}
+
+.llm-dropdown {
+  position: relative;
+  width: 100%;
 }
   
  .llm-selector {
@@ -73,11 +80,109 @@
   height: 40px;
   min-width: 120px;
   font-family: inherit;
+  color: var(--text);
+  text-align: left;
+  appearance: none;
 }
 
-.llm-selector option,
-.llm-selector optgroup {
-  font-family: inherit;
+.llm-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.llm-trigger.open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 95, 124, 0.18);
+}
+
+.llm-trigger-placeholder {
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.llm-trigger-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.llm-trigger-icon {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.llm-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max(220px, 100%);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  z-index: 20;
+  overscroll-behavior: contain;
+}
+
+.llm-menu.open-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.llm-group + .llm-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-contrast);
+}
+
+.llm-group-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 2px 6px 6px;
+}
+
+.llm-option {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.llm-option:hover:not(:disabled) {
+  background-color: var(--panel-muted);
+}
+
+.llm-option.selected:not(:disabled) {
+  background-color: var(--accent-soft);
+}
+
+.llm-option:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.controls-container .submit-button {
+  width: 100%;
 }
   
  .submit-button {
