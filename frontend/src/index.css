@@ -1,3 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #f6f4ef;
+  --panel: #ffffff;
+  --panel-muted: #f0eee7;
+  --panel-soft: #fbfaf6;
+  --panel-contrast: #e6e2d8;
+  --assistant-bg: #e2e4e8;
+  --assistant-border: #cfd3d7;
+  --border: #d9d4c8;
+  --text: #1f2429;
+  --text-muted: #6b6b64;
+  --accent: #2f5f7c;
+  --accent-strong: #244a60;
+  --accent-soft: #e2edf4;
+  --danger: #b44a4a;
+  --success: #2f7d5a;
+  --shadow: 0 16px 32px rgba(31, 36, 41, 0.08);
+  --shadow-sm: 0 6px 16px rgba(31, 36, 41, 0.08);
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+}
+
 /* Set the height of the root React component. */
 #root {
   display: flex;
@@ -7,6 +32,18 @@
 
 body {
   margin: 0;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top left, #ffffff 0%, #f6f4ef 45%, #f2efe7 100%);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 .header-material {
@@ -17,7 +54,10 @@ body {
 
 .main-title {
   margin-top: 20px;
-  color: #050505;
+  color: var(--text);
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .app-container {
@@ -31,7 +71,10 @@ body {
 .past-chats-panel {
   width: 15%;
   padding: 20px;
-  border: solid 1px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 
 .current-llm-interaction {
@@ -48,24 +91,33 @@ body {
   flex-grow: 1;
   font-size: 1em;
   resize: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--panel);
+  color: var(--text);
 }
 
 .llm-response {
-  background-color: #e8e8e8;
+  background-color: var(--panel-soft);
   padding-top: 5px;
   padding-left: 20px;
   padding-right: 20px;  
   margin-bottom: 20px;
   height: 60%;
   overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 .control-panel {
-  background-color: #d4d4d4;
+  background-color: var(--panel-soft);
   width: 25%;
   padding: 20px;
   display: flex;
-  flex-direction: column; 
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 
 .system-prompt {
@@ -73,6 +125,10 @@ body {
   height: 40%;
   resize: none;
   font-size: 1em;  
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--panel);
+  color: var(--text);
 }
 
 .submit-button {
@@ -86,7 +142,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(30, 36, 42, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -94,13 +150,14 @@ body {
 }
 
 .login-form {
-  background: white;
+  background: var(--panel);
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   width: 100%;
   max-width: 400px;
   position: relative;
+  border: 1px solid var(--border);
 }
 
 .login-header {
@@ -112,7 +169,8 @@ body {
 
 .login-header h2 {
   margin: 0;
-  color: #333;
+  color: var(--text);
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
 }
 
 .close-button {
@@ -120,7 +178,7 @@ body {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
+  color: var(--text-muted);
   padding: 0;
   width: 30px;
   height: 30px;
@@ -130,7 +188,7 @@ body {
 }
 
 .close-button:hover {
-  color: #333;
+  color: var(--text);
 }
 
 .form-group {
@@ -140,81 +198,84 @@ body {
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: var(--text);
   font-weight: 500;
 }
 
 .form-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   box-sizing: border-box;
+  background-color: var(--panel);
+  color: var(--text);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 95, 124, 0.18);
 }
 
 .form-group input:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--panel-muted);
   cursor: not-allowed;
 }
 
 .error-message {
-  color: #dc3545;
+  color: var(--danger);
   font-size: 0.875rem;
   margin-bottom: 1rem;
   padding: 0.5rem;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
+  background-color: #f3d9d9;
+  border: 1px solid #e4bcbc;
+  border-radius: var(--radius-sm);
 }
 
 .submit-button {
   width: 100%;
   padding: 0.75rem;
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   cursor: pointer;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .submit-button:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--accent-strong);
 }
 
 .submit-button:disabled {
-  background-color: #6c757d;
+  background-color: #97a0a6;
   cursor: not-allowed;
 }
 
 .form-toggle {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .toggle-link {
   background: none;
   border: none;
-  color: #007bff;
+  color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
   font-size: inherit;
 }
 
 .toggle-link:hover:not(:disabled) {
-  color: #0056b3;
+  color: var(--accent-strong);
 }
 
 .toggle-link:disabled {
-  color: #6c757d;
+  color: #97a0a6;
   cursor: not-allowed;
 }
 
@@ -238,21 +299,21 @@ body {
 }
 
 .login-button {
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
 }
 
 .login-button:hover {
-  background-color: #0056b3;
+  background-color: var(--accent-strong);
 }
 
 .login-button.loading {
-  background-color: #6c757d;
+  background-color: #97a0a6;
   cursor: not-allowed;
 }
 
@@ -268,45 +329,45 @@ body {
 }
 
 .user-email {
-  color: #333;
+  color: var(--text);
   font-weight: 500;
 }
 
 .admin-badge {
-  background-color: #28a745;
+  background-color: var(--success);
   color: white;
   padding: 0.4rem 0.8rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   font-weight: 500;
 }
 
 .logout-button {
-  background-color: #dc3545;
+  background-color: var(--danger);
   color: white;
   border: none;
   padding: 0.4rem 0.8rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.8rem;
 }
 
 .logout-button:hover {
-  background-color: #c82333;
+  background-color: #9c3f3f;
 }
 
 .settings-button {
-  background-color: #6c757d;
+  background-color: #4c5b64;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
 }
 
 .settings-button:hover {
-  background-color: #5a6268;
+  background-color: #3f4b53;
 }
 
 /* Loading state - prevents UI flicker during token verification */
@@ -316,5 +377,5 @@ body {
   align-items: center;
   height: 100vh;
   font-size: 18px;
-  color: #666;
+  color: var(--text-muted);
 }
