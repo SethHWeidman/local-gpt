@@ -52,3 +52,39 @@ scripts/reset-user-password.sh seth@sethweidman.com cibQip-tiqdez-9jinno
 ```
 
 Replace the email and password arguments as needed.
+
+## Heroku
+
+Heroku app name: `blooming-depths-55073`.
+
+### Connect to the production database
+
+```sh
+heroku pg:psql -a blooming-depths-55073
+```
+
+### View and update environment variables
+
+View all config vars:
+
+```sh
+heroku config -a blooming-depths-55073
+```
+
+Get a single config var:
+
+```sh
+heroku config:get DATABASE_URL -a blooming-depths-55073
+```
+
+Set a config var:
+
+```sh
+heroku config:set KEY=value -a blooming-depths-55073
+```
+
+Unset a config var:
+
+```sh
+heroku config:unset KEY -a blooming-depths-55073
+```
