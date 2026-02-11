@@ -1,16 +1,17 @@
-import os
 import pathlib
 import psycopg2
 
 import dotenv
 
-dotenv.load_dotenv()
-
 root_dir = pathlib.Path(__file__).resolve().parent.parent
-db_dir = root_dir / 'db'
+migrations_dir = root_dir / 'db_migrations'
 
-# Connect using DATABASE_URL (from .env locally or Heroku)
-conn = psycopg2.connect(os.getenv('DATABASE_URL'))
+# Connect using DATABASE_URL from .env
+env = dotenv.dotenv_values(root_dir / '.env')
+database_url = env.get('DATABASE_URL')
+if not database_url:
+    raise SystemExit("DATABASE_URL is not set. Add it to .env.")
+conn = psycopg2.connect(database_url)
 cur = conn.cursor()
 
 # Create migrations tracking table if not exists
@@ -26,36 +27,29 @@ cur.execute(
 conn.commit()
 
 
-# Function to check if a migration is applied
-def is_applied(filename):
-    cur.execute("SELECT 1 FROM schema_migrations WHERE filename = %s", (filename,))
-    return cur.fetchone() is not None
-
-
-# Apply initial schema if not applied (treat as '000_db.sql')
-initial_schema = db_dir / 'db.sql'
-initial_filename = '000_db.sql'
-if not is_applied(initial_filename):
-    with open(initial_schema, 'r') as f:
-        cur.execute(f.read())
-    cur.execute(
-        "INSERT INTO schema_migrations (filename) VALUES (%s)", (initial_filename,)
-    )
-    conn.commit()
-    print(f"Applied {initial_filename}")
-
-# Apply numbered migrations in order
-migration_dir = db_dir / 'migrations'
-migration_files = sorted(migration_dir.glob('*.sql'))
+# Apply migrations in order
+migration_files = sorted(migrations_dir.glob('*.sql'))
+applied_count = 0
+skipped_files = []
 for file in migration_files:
-    filename = os.path.basename(file)
-    if not is_applied(filename):
+    filename = file.name
+    cur.execute("SELECT 1 FROM schema_migrations WHERE filename = %s", (filename,))
+    already_applied = cur.fetchone() is not None
+    if not already_applied:
         with open(file, 'r') as f:
             cur.execute(f.read())
         cur.execute("INSERT INTO schema_migrations (filename) VALUES (%s)", (filename,))
         conn.commit()
         print(f"Applied {filename}")
+        applied_count += 1
+    else:
+        skipped_files.append(filename)
 
 cur.close()
 conn.close()
+if applied_count == 0:
+    print("No pending migrations.")
+else:
+    if skipped_files:
+        print(f"Skipped {len(skipped_files)} already-applied migrations.")
 print("Migrations completed.")
