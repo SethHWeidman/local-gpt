@@ -1,16 +1,16 @@
+from os import environ
 import pathlib
-import psycopg2
 
-import dotenv
+
+import psycopg2
 
 root_dir = pathlib.Path(__file__).resolve().parent.parent
 migrations_dir = root_dir / 'db_migrations'
 
-# Connect using DATABASE_URL from .env
-env = dotenv.dotenv_values(root_dir / '.env')
-database_url = env.get('DATABASE_URL')
+# Connect using DATABASE_URL from the environment
+database_url = environ.get("DATABASE_URL")
 if not database_url:
-    raise SystemExit("DATABASE_URL is not set. Add it to .env.")
+    raise SystemExit("DATABASE_URL is not set in the environment.")
 conn = psycopg2.connect(database_url)
 cur = conn.cursor()
 
