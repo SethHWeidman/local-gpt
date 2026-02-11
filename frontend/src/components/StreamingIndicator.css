@@ -2,12 +2,13 @@
   position: fixed;
   top: 90px;
   right: 20px;
-  background: #fff;
+  background: var(--panel);
   padding: 8px 12px;
   font-size: 1.25em;
   font-weight: bold;
-  color: #000;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   z-index: 1000;
 }

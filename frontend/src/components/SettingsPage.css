@@ -2,6 +2,7 @@
   padding: 1rem;
   max-width: 400px;
   margin: auto;
+  color: var(--text);
 }
 
 .settings-field {
@@ -18,20 +19,29 @@
   width: 100%;
   padding: 0.5rem;
   box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--panel);
+  color: var(--text);
 }
 
 .settings-error {
-  color: red;
+  color: var(--danger);
   margin-bottom: 1rem;
 }
 
 .settings-actions button {
   margin-right: 0.5rem;
   padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  color: var(--text);
+  cursor: pointer;
 }
 
 .settings-ok {
-  color: green;
+  color: var(--success);
   font-size: 0.9rem;
   margin-left: 0.5rem;
 }

@@ -14,15 +14,16 @@
 }
 
 .new-conversation-button {
-    background-color: #e6e6e6;
-    color: #333;
-    border: 1px solid #cccccc;
+    background-color: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.9rem;
+    box-shadow: var(--shadow-sm);
 }
 
 .new-conversation-button:hover {
-    background-color: #dddddd;
+    background-color: var(--panel-muted);
 }

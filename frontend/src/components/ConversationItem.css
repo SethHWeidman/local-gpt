@@ -3,10 +3,11 @@
   align-items: center;
   padding: 8px;
   cursor: pointer;
+  border-radius: var(--radius-sm);
 }
 
 .conversation-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--panel-muted);
 }
   
 .conversation-content {
@@ -22,11 +23,11 @@
 }
 
 .conversation-item.delete-mode .conversation-topic {
-  color: red;
+  color: var(--danger);
 }
 
 .delete-x {
-  color: red;
+  color: var(--danger);
   font-weight: bold;
   cursor: pointer;
   padding: 0 8px;
