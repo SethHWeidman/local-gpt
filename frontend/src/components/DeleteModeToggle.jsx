@@ -5,11 +5,20 @@
  */
 import "./DeleteModeToggle.css";
 
-const DeleteModeToggle = ({ isDeleteMode, toggleDeleteMode }) => (
-  <label className="delete-toggle">
-    <input type="checkbox" checked={isDeleteMode} onChange={toggleDeleteMode} />
-    <span>{`Delete Mode: ${isDeleteMode ? "On" : "Off"}`}</span>
-  </label>
-);
+const DeleteModeToggle = ({ isDeleteMode, toggleDeleteMode }) => {
+  const inputId = "delete-mode-toggle";
+
+  return (
+    <div className="delete-toggle">
+      <input
+        id={inputId}
+        type="checkbox"
+        checked={isDeleteMode}
+        onChange={toggleDeleteMode}
+      />
+      <label htmlFor={inputId}>{`Delete Mode: ${isDeleteMode ? "On" : "Off"}`}</label>
+    </div>
+  );
+};
 
 export default DeleteModeToggle;
